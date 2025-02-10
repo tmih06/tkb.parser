@@ -13,7 +13,7 @@ export interface TKBType {
     weekRangeTo: number;
 }
 
-const global = /^(?:(\d+)\t)?(?:([A-Za-z0-9.^\t]+)\t)?([^\t]+)\t(?:[^\t]*\t){3}([^\t]+)\t(Thứ \d+,\d+-\d+,[^\t]+)\t(\d+-\d+)/gm;
+const global = /^(?:(\d+)\t)?(?:([A-Za-z0-9.^\t]+)\t)?([^\t]+)\t(?:[^\t]*\t){3}([^\t]+)\t(Thứ \d+,\d+-\d+,[^\t]+)\t(\d+-\d+)/;
 
 const rgx = {
     id: /^(?=.*\d)(?=.*\.)[A-Za-z0-9.]+$/g,

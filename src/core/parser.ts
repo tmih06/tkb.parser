@@ -1,5 +1,5 @@
 
-interface TKBType {
+export interface TKBType {
     id: string;
     name: string;
     instructor: string;
@@ -26,7 +26,6 @@ export default function Parser(s: string): TKBType | null {
         name = "",
         instructor = "",
         time: TKBType['time'] = [],
-        classroom = "",
         weekRangeFrom = 0,
         weekRangeTo = 0;
 
@@ -57,8 +56,6 @@ export default function Parser(s: string): TKBType | null {
                 lsStart: parseInt(dateArr[2]),
                 lsEnd: parseInt(dateArr[3])
             });
-
-            classroom = dateArr[4];
         }
 
         const weekRange = match[i + 4].split("-");

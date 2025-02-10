@@ -18,7 +18,7 @@ const global = /^(?:(\d+)\t)?(?:([A-Za-z0-9.^\t]+)\t)?([^\t]+)\t(?:[^\t]*\t){3}(
 const rgx = {
     id: /^(?=.*\d)(?=.*\.)[A-Za-z0-9.]+$/g,
     dates: /(Thứ \d+,\d+-\d+,[^\t;]+)/gm,
-    date: /Thứ (\d+),(\d+)-(\d+),([^\t]+)$/g
+    date: /Thứ (\d+),(\d+)-(\d+),(.+)$/
 };
 
 export default function Parser(s: string): TKBType | null {
@@ -48,8 +48,6 @@ export default function Parser(s: string): TKBType | null {
 
         for (let j = 0; j < dateMatch.length; j++) {
             const dateArr = rgx.date.exec(dateMatch[j]);
-
-            console.log("matched date:", dateArr, dateMatch[j]);
 
             if (!dateArr) continue;
 

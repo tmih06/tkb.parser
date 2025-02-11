@@ -97,7 +97,7 @@ export default function App() {
                 </tr>
             ))}
         </>
-    ), [timeRange, week, byWeek, scheduleData, showOnlyAvailable]);
+    ), [week, byWeek, scheduleData, showOnlyAvailable]);
 
     return (
         <>

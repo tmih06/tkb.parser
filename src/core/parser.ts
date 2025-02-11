@@ -51,8 +51,8 @@ const rgx = {
 export default function Parser(s: string): TKBType | null {
     let id = "",
         name = "",
-        instructor = "",
-        time: TKBType['time'] = [],
+        instructor = "";
+    const time: TKBType['time'] = [],
         weekRange: TKBType['weekRange'] = []
 
     const match = global.exec(s);

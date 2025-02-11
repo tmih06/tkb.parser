@@ -29,7 +29,7 @@ import Parser, { TKBType } from "./core/parser";
 import timeRange from "./core/range";
 import html2canvas from "html2canvas-pro";
 import tbCls from "./table.module.scss";
-import NextLession from "./components/NextLesson";
+// import NextLession from "./components/NextLesson";
 
 export default function App() {
     const [byWeek, setByWeek] = useState(localStorage.getItem('byWeek') === 'true' || false);
@@ -84,7 +84,8 @@ export default function App() {
                             {scheduleData.filter(d =>
                                 d.time.some(t => t.date === day && t.lsStart <= time.lessonNumber && t.lsEnd >= time.lessonNumber && (!byWeek || d.weekRange.some(wr => wr.from <= week && wr.to >= week)))
                             ).map((d, ind) => (
-                                <Box className={tbCls.card} key={d.id + day + ind}>
+                                <Box className={tbCls.card}
+                                    key={d.id + day + ind}>
                                     <Box style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                                         <Text>{d.name}</Text>
                                         <Text size="1" style={{ fontSize: '10px', color: 'grey' }} color="gray">{d.instructor}</Text>
@@ -117,24 +118,34 @@ export default function App() {
                             value={data}
                             onChange={(e) => setData(e.currentTarget.value)}
                             style={{ margin: '1rem 0', fontSize: '12px', height: '200px', fontFamily: 'monospace, Consolas, source-code-pro, Menlo, Monaco, Lucida Console, Courier New, sans-serif' }} resize="vertical" placeholder="Dán bảng đã copy vào đây..." />
-                        <Flex align="center" gap="2" style={{ marginBottom: '1rem' }}>
-                            <Checkbox
-                                checked={byWeek}
-                                onCheckedChange={(e) => setByWeek(Boolean(e))}
-                            />
-                            <Text>Theo tuần</Text>
-                            <TextField.Root
-                                disabled={!byWeek}
-                                style={{ width: '3rem' }}
-                                value={week}
-                                onChange={(e) => setWeek(Number(e.currentTarget.value))}
-                                size="1" type="number" placeholder="Tuần"
-                            />
-                            <Checkbox
-                                checked={showOnlyAvailable}
-                                onCheckedChange={(e) => setShowOnlyAvailable(Boolean(e))}
-                            />
-                            <Text>Chỉ hiển thị mốc thời gian có lịch học</Text>
+                        <Flex align={{
+                            initial: 'start',
+                            sm: 'center'
+                        }} gap="2" style={{ marginBottom: '1rem' }} direction={{
+                            initial: 'column',
+                            sm: 'row'
+                        }}>
+                            <Flex gap="2" align="center">
+                                <Checkbox
+                                    checked={byWeek}
+                                    onCheckedChange={(e) => setByWeek(Boolean(e))}
+                                />
+                                <Text>Theo tuần</Text>
+                                <TextField.Root
+                                    disabled={!byWeek}
+                                    style={{ width: '3rem' }}
+                                    value={week}
+                                    onChange={(e) => setWeek(Number(e.currentTarget.value))}
+                                    size="1" type="number" placeholder="Tuần"
+                                />
+                            </Flex>
+                            <Flex gap="2" align="center">
+                                <Checkbox
+                                    checked={showOnlyAvailable}
+                                    onCheckedChange={(e) => setShowOnlyAvailable(Boolean(e))}
+                                />
+                                <Text>Chỉ hiển thị mốc thời gian có lịch học</Text>
+                            </Flex>
                         </Flex>
                         <Flex align="center" gap="1">
                             <Button
@@ -166,27 +177,28 @@ export default function App() {
                         </Flex>
                     </Flex>
                 </Card>
-                <Card my="3" mx="3" style={{ width: 'calc(100% - 2rem)', padding: '1.5rem' }}>
-                    <NextLession />
-                </Card>
+                {/* <Card my="3" mx="3" style={{ width: 'calc(100% - 2rem)', padding: '1.5rem' }}>
+                    <NextLession data={scheduleData} />
+                </Card> */}
             </Container>
-            <Box mx="3" style={{ width: 'calc(100% - 2rem)', overflow: 'auto' }}>
-                <table className={tbCls.table} ref={tableRef}>
-                    <thead>
-                        <tr>
-                            <th> </th>
-                            {Array.from({ length: 7 }, (_, i) => i + 2).map((day) => (
-                                <th key={day}>{day === 8 ? 'Chủ nhật' : `Thứ ${day}`}</th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {dt}
-                    </tbody>
-                </table>
-            </Box>
+            <div style={{ margin: 'auto', width: 'fit-content' }}>
+                <Box mx="3" style={{ width: 'calc(100% - 2rem)', maxWidth: '1920px', overflow: 'auto' }}>
+                    <table className={tbCls.table} ref={tableRef}>
+                        <thead>
+                            <tr>
+                                <th> </th>
+                                {Array.from({ length: 7 }, (_, i) => i + 2).map((day) => (
+                                    <th key={day}>{day === 8 ? 'Chủ nhật' : `Thứ ${day}`}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {dt}
+                        </tbody>
+                    </table>
+                </Box>
+            </div>
             <Footer />
-
         </>
     )
 }

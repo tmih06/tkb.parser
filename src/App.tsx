@@ -115,7 +115,7 @@ export default function App() {
                             <Text as="span" ml="1" size="1" color="gray">for <Link color="gray" href="https://dut.udn.vn">DUT</Link> students</Text>
                         </Text>
                         <Text size='2' color="gray">
-                            Truy c&#x1EAD;p v&agrave;o trang <b>Sinh vi&ecirc;n &gt; C&aacute; nh&acirc;n &gt; L&#x1ECB;ch h&#x1ECD;c, thi &amp; kh&#x1EA3;o s&aacute;t &yacute; ki&#x1EBF;n</b>, sau đ&oacute; copy b&#x1EA3;ng l&#x1ECB;ch h&#x1ECD;c v&agrave;o đ&acirc;y. <Link href="https://dut.udn.vn">Xem video hướng dẫn</Link>.
+                            Truy c&#x1EAD;p v&agrave;o trang <b>Sinh vi&ecirc;n &gt; C&aacute; nh&acirc;n &gt; L&#x1ECB;ch h&#x1ECD;c, thi &amp; kh&#x1EA3;o s&aacute;t &yacute; ki&#x1EBF;n</b>, sau đ&oacute; copy b&#x1EA3;ng l&#x1ECB;ch h&#x1ECD;c v&agrave;o đ&acirc;y. <Link target="_blank" href="https://youtu.be/wiavNgTzB9o">Xem video hướng dẫn</Link>.
                             <br />
                             Tất cả các khâu xử lí đều được thực hiện hoàn toàn trên trình duyệt của bạn không thông qua máy chủ thứ 3 nào. Thời khoá biểu đã nhập sẽ tự động lưu vào bộ nhớ của trình duyệt.
                         </Text>
@@ -189,6 +189,9 @@ export default function App() {
                                     });
                                 }}
                             >Lưu lại thành file ảnh</Button>
+                            <a href="https://youtu.be/wiavNgTzB9o" target="_blank" rel="noreferrer">
+                                <Button variant="soft" color="cyan">Xem hướng dẫn</Button>
+                            </a>
                         </Flex>
                     </Flex>
                 </Card>

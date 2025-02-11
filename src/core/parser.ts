@@ -38,12 +38,12 @@ export interface TKBType {
     }[]
 }
 
-const global = /^(?:(\d+)\t)?(?:([A-Za-z0-9.^\t]+)\t)?([^\t]+)\t(?:[^\t]*\t){3}([^\t]+)\t(Thứ \d+,\d+-\d+,[^\t]+)\t([\d+-;]+)/;
+const global = /^(?:(\d+)\t)?(?:([A-Za-z0-9.^\t]+)\t)?([^\t]+)\t(?:[^\t]*\t){3}([^\t]+)\t((?:Thứ \d+|Chủ nhật),\d+-\d+,[^\t]+)\t([\d+-;]+)/;
 
 const rgx = {
     id: /^(?=.*\d)(?=.*\.)[A-Za-z0-9.]+$/g,
-    dates: /(Thứ \d+,\d+-\d+,[^\t;]+)/gm,
-    date: /Thứ (\d+),(\d+)-(\d+),(.+)$/,
+    dates: /((?:Thứ \d+|Chủ nhật),\d+-\d+,[^\t;]+)/gm,
+    date: /(?:Thứ (\d+)|Chủ nhật),(\d+)-(\d+),(.+)$/,
     weekRange: /(\d+)-(\d+)/,
     weeksRange: /[\d+-;]+/
 };
@@ -79,7 +79,7 @@ export default function Parser(s: string): TKBType | null {
             if (!dateArr) continue;
 
             time.push({
-                date: parseInt(dateArr[1]),
+                date: dateArr[1] ? parseInt(dateArr[1], 10) : 8,
                 class: dateArr[4],
                 lsStart: parseInt(dateArr[2]),
                 lsEnd: parseInt(dateArr[3])

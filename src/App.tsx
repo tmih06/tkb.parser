@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-import { Box, Button, Card, Checkbox, Container, Flex, Link, Text, TextArea, TextField } from "@radix-ui/themes";
+import { Box, Button, Card, Checkbox, Container, DropdownMenu, Flex, Link, Text, TextArea, TextField } from "@radix-ui/themes";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Footer from "./components/Footer";
 import Parser, { TKBType } from "./core/parser";
@@ -34,6 +34,7 @@ import tbCls from "./table.module.scss";
 export default function App() {
     const [byWeek, setByWeek] = useState(localStorage.getItem('byWeek') === 'true' || false);
     const [showOnlyAvailable, setShowOnlyAvailable] = useState(localStorage.getItem('showOnlyAvailable') === 'true' || false);
+    const [onlyToday, setOnlyToday] = useState(localStorage.getItem('onlyToday') === 'true' || false);
     const [week, setWeek] = useState(localStorage.getItem('week') ? Number(localStorage.getItem('week')) : 0);
     const [data, setData] = useState(localStorage.getItem('data') || '');
     const tableRef = useRef<HTMLTableElement>(null);
@@ -53,6 +54,10 @@ export default function App() {
     useEffect(() => {
         localStorage.setItem('week', week.toString());
     }, [week]);
+
+    useEffect(() => {
+        localStorage.setItem('onlyToday', onlyToday.toString());
+    }, [onlyToday]);
 
     const scheduleData = useMemo<TKBType[]>(() => {
         const d: TKBType[] = [];
@@ -79,7 +84,7 @@ export default function App() {
                         <br />
                         <Text>{time.start} - {time.end}</Text>
                     </td>
-                    {Array.from({ length: 7 }, (_, i) => i + 2).map(day => (
+                    {Array.from({ length: 7 }, (_, i) => i + 2).map(day => (onlyToday && (day === (new Date()).getDay() + 1 || (day === 8 && (new Date()).getDay() === 0)) || !onlyToday) && (
                         <td key={day}>
                             {scheduleData.filter(d =>
                                 d.time.some(t => t.date === day && t.lsStart <= time.lessonNumber && t.lsEnd >= time.lessonNumber && (!byWeek || d.weekRange.some(wr => wr.from <= week && wr.to >= week)))
@@ -98,7 +103,7 @@ export default function App() {
                 </tr>
             ))}
         </>
-    ), [week, byWeek, scheduleData, showOnlyAvailable]);
+    ), [week, byWeek, scheduleData, showOnlyAvailable, onlyToday]);
 
     return (
         <>
@@ -112,9 +117,10 @@ export default function App() {
                         <Text size='2' color="gray">
                             Truy c&#x1EAD;p v&agrave;o trang <b>Sinh vi&ecirc;n &gt; C&aacute; nh&acirc;n &gt; L&#x1ECB;ch h&#x1ECD;c, thi &amp; kh&#x1EA3;o s&aacute;t &yacute; ki&#x1EBF;n</b>, sau đ&oacute; copy b&#x1EA3;ng l&#x1ECB;ch h&#x1ECD;c v&agrave;o đ&acirc;y. <Link href="https://dut.udn.vn">Xem video hướng dẫn</Link>.
                             <br />
-                            Thời khoá biểu đã nhập sẽ tự động lưu vào bộ nhớ của trình duyệt.
+                            Tất cả các khâu xử lí đều được thực hiện hoàn toàn trên trình duyệt của bạn không thông qua máy chủ thứ 3 nào. Thời khoá biểu đã nhập sẽ tự động lưu vào bộ nhớ của trình duyệt.
                         </Text>
                         <TextArea
+                            size="1"
                             value={data}
                             onChange={(e) => setData(e.currentTarget.value)}
                             style={{ margin: '1rem 0', fontSize: '12px', height: '200px', fontFamily: 'monospace, Consolas, source-code-pro, Menlo, Monaco, Lucida Console, Courier New, sans-serif' }} resize="vertical" placeholder="Dán bảng đã copy vào đây..." />
@@ -130,7 +136,7 @@ export default function App() {
                                     checked={byWeek}
                                     onCheckedChange={(e) => setByWeek(Boolean(e))}
                                 />
-                                <Text>Theo tuần</Text>
+                                Theo tuần
                                 <TextField.Root
                                     disabled={!byWeek}
                                     style={{ width: '3rem' }}
@@ -144,7 +150,14 @@ export default function App() {
                                     checked={showOnlyAvailable}
                                     onCheckedChange={(e) => setShowOnlyAvailable(Boolean(e))}
                                 />
-                                <Text>Chỉ hiển thị mốc thời gian có lịch học</Text>
+                                Chỉ hiển thị mốc thời gian có lịch học
+                            </Flex>
+                            <Flex gap="2" align="center">
+                                <Checkbox
+                                    checked={onlyToday}
+                                    onCheckedChange={(e) => setOnlyToday(Boolean(e))}
+                                />
+                                Chỉ hiện thị lịch học hôm nay
                             </Flex>
                         </Flex>
                         <Flex align="center" gap="1">
@@ -155,6 +168,7 @@ export default function App() {
                                     setData('');
                                     setByWeek(false);
                                     setWeek(0);
+                                    setShowOnlyAvailable(false);
                                 }}
                             >Reset</Button>
                             <Button
@@ -175,6 +189,21 @@ export default function App() {
                                     });
                                 }}
                             >Lưu lại thành file ảnh</Button>
+                            <DropdownMenu.Root>
+                                <DropdownMenu.Trigger>
+                                    <Button variant="soft" color="cyan">
+                                        Lưu thành
+                                        <DropdownMenu.TriggerIcon />
+                                    </Button>
+                                </DropdownMenu.Trigger>
+                                <DropdownMenu.Content variant="soft">
+                                    <DropdownMenu.Item>Excel (xlsx)</DropdownMenu.Item>
+                                    <DropdownMenu.Item>CSV</DropdownMenu.Item>
+                                    <DropdownMenu.Item>JSON</DropdownMenu.Item>
+                                    <DropdownMenu.Item>TXT</DropdownMenu.Item>
+                                    <DropdownMenu.Item>Markdown table</DropdownMenu.Item>
+                                </DropdownMenu.Content>
+                            </DropdownMenu.Root>
                         </Flex>
                     </Flex>
                 </Card>
@@ -188,7 +217,9 @@ export default function App() {
                         <thead>
                             <tr>
                                 <th> </th>
-                                {Array.from({ length: 7 }, (_, i) => i + 2).map((day) => (
+                                {onlyToday ? <th>
+                                    {new Date().getDay() === 0 ? 'Chủ nhật' : `Thứ ${new Date().getDay() + 1}`}
+                                </th> : Array.from({ length: 7 }, (_, i) => i + 2).map((day) => (
                                     <th key={day}>{day === 8 ? 'Chủ nhật' : `Thứ ${day}`}</th>
                                 ))}
                             </tr>

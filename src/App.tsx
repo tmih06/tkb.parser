@@ -1,14 +1,16 @@
-import { Box, Button, Card, Checkbox, Container, Flex, Link, Table, Text, TextArea, TextField } from "@radix-ui/themes";
+import { Box, Button, Card, Checkbox, Container, Flex, Link, Text, TextArea, TextField } from "@radix-ui/themes";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Footer from "./components/Footer";
 import Parser, { TKBType } from "./core/parser";
 import timeRange from "./core/range";
 import html2canvas from "html2canvas-pro";
+import tbCls from "./table.module.scss";
+import NextLession from "./components/NextLesson";
 
 export default function App() {
     const [byWeek, setByWeek] = useState(localStorage.getItem('byWeek') === 'true' || false);
     const [showOnlyAvailable, setShowOnlyAvailable] = useState(localStorage.getItem('showOnlyAvailable') === 'true' || false);
-    const [week, setWeek] = useState(0);
+    const [week, setWeek] = useState(localStorage.getItem('week') ? Number(localStorage.getItem('week')) : 0);
     const [data, setData] = useState(localStorage.getItem('data') || '');
     const tableRef = useRef<HTMLTableElement>(null);
 
@@ -23,6 +25,10 @@ export default function App() {
     useEffect(() => {
         localStorage.setItem('showOnlyAvailable', showOnlyAvailable.toString());
     }, [showOnlyAvailable]);
+
+    useEffect(() => {
+        localStorage.setItem('week', week.toString());
+    }, [week]);
 
     const scheduleData = useMemo<TKBType[]>(() => {
         let d: TKBType[] = [];
@@ -40,33 +46,31 @@ export default function App() {
 
     const dt = useMemo(() => (
         <>
-            {timeRange.filter((_, i) => !showOnlyAvailable || scheduleData.some(d =>
-                d.time.some(t => t.lsStart <= i + 1 && t.lsEnd >= i + 1 && (!byWeek || (d.weekRangeFrom <= week && d.weekRangeTo >= week)))
+            {timeRange.filter((tra) => !showOnlyAvailable || scheduleData.some(d =>
+                d.time.some(t => t.lsStart <= tra.lessonNumber && t.lsEnd >= tra.lessonNumber && (!byWeek || d.weekRange.some(wr => wr.from <= week && wr.to >= week)))
             )).map((time, tr) => (
-                <Table.Row key={tr}>
-                    <Table.Cell>
-                        <Text size="1" color="gray">Tiết {tr + 1}</Text>
+                <tr key={tr}>
+                    <td>
+                        <Text size="1" style={{ fontSize: '12px', color: 'gray' }} color="gray">Tiết {time.lessonNumber}</Text>
                         <br />
                         <Text>{time.start} - {time.end}</Text>
-                    </Table.Cell>
+                    </td>
                     {Array.from({ length: 7 }, (_, i) => i + 2).map(day => (
-                        <Table.Cell key={day}>
+                        <td key={day}>
                             {scheduleData.filter(d =>
-                                d.time.some(t => t.date === day && t.lsStart <= tr + 1 && t.lsEnd >= tr + 1 && (!byWeek || (d.weekRangeFrom <= week && d.weekRangeTo >= week)))
+                                d.time.some(t => t.date === day && t.lsStart <= time.lessonNumber && t.lsEnd >= time.lessonNumber && (!byWeek || d.weekRange.some(wr => wr.from <= week && wr.to >= week)))
                             ).map((d, ind) => (
-                                <Box style={{ background: '#DD813E40', padding: '0.5rem', borderRadius: '0.3rem' }} key={d.id + day + ind}>
-                                    <Text>
-                                        {d.name}
-                                        <br />
-                                        <Text size="1" style={{ fontSize: '10px' }} color="gray">{d.instructor}</Text>
-                                        <br />
-                                        <Text size="1" color="gray">{d.time.filter(t => t.date === day && t.lsStart <= tr + 1 && t.lsEnd >= tr + 1).map(t => t.class).join(', ')}</Text>
-                                    </Text>
+                                <Box className={tbCls.card} key={d.id + day + ind}>
+                                    <Box style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                                        <Text>{d.name}</Text>
+                                        <Text size="1" style={{ fontSize: '10px', color: 'grey' }} color="gray">{d.instructor}</Text>
+                                        <Text size="1" style={{ fontSize: '12px', color: 'gray' }} color="gray">{d.time.filter(t => t.date === day && t.lsStart <= time.lessonNumber + 1 && t.lsEnd >= time.lessonNumber + 1).map(t => t.class).join(', ')}</Text>
+                                    </Box>
                                 </Box>
                             ))}
-                        </Table.Cell>
+                        </td>
                     ))}
-                </Table.Row>
+                </tr>
             ))}
         </>
     ), [timeRange, week, byWeek, scheduleData, showOnlyAvailable]);
@@ -74,11 +78,11 @@ export default function App() {
     return (
         <>
             <Container>
-                <Card style={{ margin: '2rem 1rem', width: 'calc(100% - 2rem)', padding: '1.5rem' }}>
+                <Card my="3" mx="3" style={{ width: 'calc(100% - 2rem)', padding: '1.5rem' }}>
                     <Flex direction="column" gap="1">
                         <Text size='6'>
                             Tạo thời khoá biểu
-                            <Text as="span" style={{ marginLeft: '0.5rem' }} size="1" color="gray">for <Link color="gray" href="https://dut.udn.vn">DUT</Link> students</Text>
+                            <Text as="span" ml="1" size="1" color="gray">for <Link color="gray" href="https://dut.udn.vn">DUT</Link> students</Text>
                         </Text>
                         <Text size='2' color="gray">
                             Truy c&#x1EAD;p v&agrave;o trang <b>Sinh vi&ecirc;n &gt; C&aacute; nh&acirc;n &gt; L&#x1ECB;ch h&#x1ECD;c, thi &amp; kh&#x1EA3;o s&aacute;t &yacute; ki&#x1EBF;n</b>, sau đ&oacute; copy b&#x1EA3;ng l&#x1ECB;ch h&#x1ECD;c v&agrave;o đ&acirc;y. <Link href="https://dut.udn.vn">Xem video hướng dẫn</Link>.
@@ -124,10 +128,11 @@ export default function App() {
                                     if (!tableRef.current) return;
 
                                     html2canvas(tableRef.current, {
-                                        useCORS: true,
+                                        allowTaint: true,
+                                        backgroundColor: window.matchMedia('(prefers-color-scheme: dark)').matches ? '#212225' : '#fff',
                                     }).then(function (canvas) {
                                         const link = document.createElement('a');
-                                        link.download = Date.now() + '.png';
+                                        link.download = 'dut.tkb.parser-' + Date.now() + '.png';
                                         link.href = canvas.toDataURL('image/png');
                                         link.click();
                                         link.remove();
@@ -137,27 +142,27 @@ export default function App() {
                         </Flex>
                     </Flex>
                 </Card>
-                <Box style={{ margin: '2rem 1rem', width: 'calc(100% - 2rem)', overflow: 'auto' }}>
-                    <Table.Root variant="surface" style={{ minWidth: '1280px' }} ref={tableRef}>
-                        <Table.Header>
-                            <Table.Row>
-                                <Table.ColumnHeaderCell
-                                    style={{ background: '#4769D740', width: '250px' }}
-                                ></Table.ColumnHeaderCell>
-                                {Array.from({ length: 7 }, (_, i) => i + 2).map((day) => (
-                                    <Table.ColumnHeaderCell style={{ background: '#4769D740', width: '250px' }} key={day}>
-                                        {day === 8 ? 'Chủ nhật' : `Thứ ${day}`}
-                                    </Table.ColumnHeaderCell>
-                                ))}
-                            </Table.Row>
-                        </Table.Header>
-                        <Table.Body>
-                            {dt}
-                        </Table.Body>
-                    </Table.Root>
-                </Box>
-                <Footer />
+                <Card my="3" mx="3" style={{ width: 'calc(100% - 2rem)', padding: '1.5rem' }}>
+                    <NextLession />
+                </Card>
             </Container>
+            <Box mx="3" style={{ width: 'calc(100% - 2rem)', overflow: 'auto' }}>
+                <table className={tbCls.table} ref={tableRef}>
+                    <thead>
+                        <tr>
+                            <th> </th>
+                            {Array.from({ length: 7 }, (_, i) => i + 2).map((day) => (
+                                <th key={day}>{day === 8 ? 'Chủ nhật' : `Thứ ${day}`}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {dt}
+                    </tbody>
+                </table>
+            </Box>
+            <Footer />
+
         </>
     )
 }

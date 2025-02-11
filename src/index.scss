@@ -41,3 +41,8 @@ body {
     background-color: rgba(128, 128, 128, .4);
     background-clip: content-box
 }
+
+a {
+    text-decoration: underline !important;
+    color: inherit;
+}

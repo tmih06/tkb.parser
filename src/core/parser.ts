@@ -9,16 +9,20 @@ export interface TKBType {
         lsStart: number;
         lsEnd: number;
     }[];
-    weekRangeFrom: number;
-    weekRangeTo: number;
+    weekRange: {
+        from: number;
+        to: number;
+    }[]
 }
 
-const global = /^(?:(\d+)\t)?(?:([A-Za-z0-9.^\t]+)\t)?([^\t]+)\t(?:[^\t]*\t){3}([^\t]+)\t(Thứ \d+,\d+-\d+,[^\t]+)\t(\d+-\d+)/;
+const global = /^(?:(\d+)\t)?(?:([A-Za-z0-9.^\t]+)\t)?([^\t]+)\t(?:[^\t]*\t){3}([^\t]+)\t(Thứ \d+,\d+-\d+,[^\t]+)\t([\d+-;]+)/;
 
 const rgx = {
     id: /^(?=.*\d)(?=.*\.)[A-Za-z0-9.]+$/g,
     dates: /(Thứ \d+,\d+-\d+,[^\t;]+)/gm,
-    date: /Thứ (\d+),(\d+)-(\d+),(.+)$/
+    date: /Thứ (\d+),(\d+)-(\d+),(.+)$/,
+    weekRange: /(\d+)-(\d+)/,
+    weeksRange: /[\d+-;]+/
 };
 
 export default function Parser(s: string): TKBType | null {
@@ -26,14 +30,15 @@ export default function Parser(s: string): TKBType | null {
         name = "",
         instructor = "",
         time: TKBType['time'] = [],
-        weekRangeFrom = 0,
-        weekRangeTo = 0;
+        weekRange: TKBType['weekRange'] = []
 
     const match = global.exec(s);
 
     if (!match) return null;
 
     for (let i = 1; i < match.length; i++) {
+        if (!match[i]) continue;
+
         const idMatch = match[i].match(rgx.id);
         if (!idMatch) continue;
 
@@ -45,8 +50,8 @@ export default function Parser(s: string): TKBType | null {
 
         if (!dateMatch) continue;
 
-        for (let j = 0; j < dateMatch.length; j++) {
-            const dateArr = rgx.date.exec(dateMatch[j]);
+        for (const date of dateMatch) {
+            const dateArr = rgx.date.exec(date);
 
             if (!dateArr) continue;
 
@@ -58,10 +63,22 @@ export default function Parser(s: string): TKBType | null {
             });
         }
 
-        const weekRange = match[i + 4].split("-");
+        const weekRangeMatches = rgx.weeksRange.exec(match[i + 4]);
 
-        weekRangeFrom = parseInt(weekRange[0]);
-        weekRangeTo = parseInt(weekRange[1]);
+        if (!weekRangeMatches) continue;
+
+        const weekRangeArr = weekRangeMatches[0].split(';');
+
+        for (const weekRangeStr of weekRangeArr) {
+            const weekRangeMatch = rgx.weekRange.exec(weekRangeStr);
+
+            if (!weekRangeMatch) continue;
+
+            weekRange.push({
+                from: parseInt(weekRangeMatch[1]),
+                to: parseInt(weekRangeMatch[2])
+            });
+        }
         break;
     }
 
@@ -70,7 +87,6 @@ export default function Parser(s: string): TKBType | null {
         name,
         instructor,
         time,
-        weekRangeFrom,
-        weekRangeTo
+        weekRange
     };
 }

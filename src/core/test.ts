@@ -1,3 +1,3 @@
 import Parser from "./parser";
 
-console.log(Parser(`1	0130251.2420.24.04	B24-GDTC2-CL-04	0			Khoa G.dục thể chất - ĐHĐN	Thứ 4,1-4,GDTC	29-44								`));
+console.log(Parser(`9	2090170.2420.22.07	Lịch sử Đảng Cộng sản Việt Nam	2			Ngô Văn Hà	Thứ 3,6-7,F106	24-25;29-42`));

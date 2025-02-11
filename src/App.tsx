@@ -159,6 +159,7 @@ export default function App() {
                             >Reset</Button>
                             <Button
                                 variant="soft"
+                                disabled={scheduleData.length < 1}
                                 onClick={() => {
                                     if (!tableRef.current) return;
 
@@ -181,21 +182,23 @@ export default function App() {
                     <NextLession data={scheduleData} />
                 </Card> */}
             </Container>
-            <Box mx="3" style={{ width: 'calc(100% - 2rem)', overflow: 'auto' }}>
-                <table className={tbCls.table} ref={tableRef}>
-                    <thead>
-                        <tr>
-                            <th> </th>
-                            {Array.from({ length: 7 }, (_, i) => i + 2).map((day) => (
-                                <th key={day}>{day === 8 ? 'Chủ nhật' : `Thứ ${day}`}</th>
-                            ))}
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {dt}
-                    </tbody>
-                </table>
-            </Box>
+            {scheduleData.length > 0 &&
+                <Box mx="3" style={{ width: 'calc(100% - 2rem)', overflow: 'auto' }}>
+                    <table className={tbCls.table} ref={tableRef}>
+                        <thead>
+                            <tr>
+                                <th> </th>
+                                {Array.from({ length: 7 }, (_, i) => i + 2).map((day) => (
+                                    <th key={day}>{day === 8 ? 'Chủ nhật' : `Thứ ${day}`}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {dt}
+                        </tbody>
+                    </table>
+                </Box>
+            }
             <Footer />
         </>
     )

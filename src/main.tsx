@@ -33,6 +33,8 @@ import './index.scss';
 import App from './App'
 import { Theme } from '@radix-ui/themes';
 
+// why we need lint for main file heh?
+// eslint-disable-next-line react-refresh/only-export-components
 const ThemeMatcher = ({ children }: { children: ReactNode }) => {
   const [theme, setTheme] = useState<'dark' | 'light'>(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 

@@ -38,12 +38,12 @@ export interface TKBType {
     }[]
 }
 
-const global = /^(?:(\d+)\t)?(?:([A-Za-z0-9.^\t]+)\t)?([^\t]+)\t(?:[^\t]*\t){3}([^\t]+)\t((?:Thứ \d+|Chủ nhật),\d+-\d+,[^\t]+)\t([\d+-;]+)/;
+const global = /^(?:(\d+)\t)?(?:([A-Za-z0-9.^\t]+)\t)?([^\t]+)\t(?:[^\t]*\t){3}([^\t]+)\t((?:Thứ \d+|[Cc][Hh][Ủủ][ ]?[Nn][Hh][Ậậ][Tt]),\d+-\d+,[^\t]+)\t([\d+-;]+)/;
 
 const rgx = {
     id: /^(?=.*\d)(?=.*\.)[A-Za-z0-9.]+$/g,
-    dates: /((?:Thứ \d+|Chủ nhật),\d+-\d+,[^\t;]+)/gm,
-    date: /(?:Thứ (\d+)|Chủ nhật),(\d+)-(\d+),(.+)$/,
+    dates: /((?:Thứ \d+|[Cc][Hh][Ủủ][ ]?[Nn][Hh][Ậậ][Tt]),\d+-\d+,[^\t;]+)/gm,
+    date: /(?:Thứ (\d+)|[Cc][Hh][Ủủ][ ]?[Nn][Hh][Ậậ][Tt]),(\d+)-(\d+),(.+)$/,
     weekRange: /(\d+)-(\d+)/,
     weeksRange: /[\d+-;]+/
 };

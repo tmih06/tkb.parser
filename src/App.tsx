@@ -157,7 +157,7 @@ export default function App() {
                                     checked={onlyToday}
                                     onCheckedChange={(e) => setOnlyToday(Boolean(e))}
                                 />
-                                Chỉ hiện thị lịch học hôm nay
+                                Chỉ hiển thị lịch học hôm nay
                             </Flex>
                         </Flex>
                         <Flex align="center" gap="1">

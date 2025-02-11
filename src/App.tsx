@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-import { Box, Button, Card, Checkbox, Container, DropdownMenu, Flex, Link, Text, TextArea, TextField } from "@radix-ui/themes";
+import { Box, Button, Card, Checkbox, Container, Flex, Link, Text, TextArea, TextField } from "@radix-ui/themes";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Footer from "./components/Footer";
 import Parser, { TKBType } from "./core/parser";
@@ -189,21 +189,6 @@ export default function App() {
                                     });
                                 }}
                             >Lưu lại thành file ảnh</Button>
-                            <DropdownMenu.Root>
-                                <DropdownMenu.Trigger>
-                                    <Button variant="soft" color="cyan">
-                                        Lưu thành
-                                        <DropdownMenu.TriggerIcon />
-                                    </Button>
-                                </DropdownMenu.Trigger>
-                                <DropdownMenu.Content variant="soft">
-                                    <DropdownMenu.Item>Excel (xlsx)</DropdownMenu.Item>
-                                    <DropdownMenu.Item>CSV</DropdownMenu.Item>
-                                    <DropdownMenu.Item>JSON</DropdownMenu.Item>
-                                    <DropdownMenu.Item>TXT</DropdownMenu.Item>
-                                    <DropdownMenu.Item>Markdown table</DropdownMenu.Item>
-                                </DropdownMenu.Content>
-                            </DropdownMenu.Root>
                         </Flex>
                     </Flex>
                 </Card>

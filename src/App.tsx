@@ -213,7 +213,7 @@ export default function App() {
                                     });
                                 }}
                             >Lưu lại thành file ảnh</Button>
-                            <a href="https://youtu.be/wiavNgTzB9o" target="_blank" rel="noreferrer">
+                            <a href={selectedUniversity.videoUrl} target="_blank" rel="noreferrer">
                                 <Button variant="soft" color="cyan">Xem hướng dẫn</Button>
                             </a>
                             <Button

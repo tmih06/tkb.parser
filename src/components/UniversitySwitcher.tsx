@@ -39,6 +39,11 @@ export default function UniversitySwitcher({ selectedUniversity, onUniversityCha
     setImageErrors(prev => new Set([...prev, universityId]));
   };
 
+  const getAssetUrl = (path: string) => {
+    // Use Vite's base URL for assets in public folder
+    return `${import.meta.env.BASE_URL}${path}`;
+  };
+
   return (
     <>
       <Text size='6'>
@@ -68,7 +73,7 @@ export default function UniversitySwitcher({ selectedUniversity, onUniversityCha
                 <span className={styles.fallbackText}>{university.displayNumber}</span>
               ) : (
                 <img 
-                  src={university.logoPath} 
+                  src={getAssetUrl(university.logoPath)} 
                   alt={`${university.shortName} Logo`}
                   className={styles.UniversityLogo}
                   onError={() => handleImageError(university.id)}

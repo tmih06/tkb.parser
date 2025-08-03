@@ -128,7 +128,7 @@ export const UNIVERSITIES: UniversityConfig[] = [
     logoPath: '	https://github.com/tmih06/tkb.parser/blob/main/public/logos/ufl-logo.png?raw=true',
     url: 'https://ufl.udn.vn/',
     instructions: 'Truy cập vào hệ thống quản lý học tập, tìm phần lịch học và copy bảng thời khóa biểu.',
-    videoUrl: 'https://github.com/tmih06/tkb.parser/blob/main/public/tutorial/ufl-tutorial.mp4',
+    videoUrl: 'https://youtu.be/Us4TbauKPA8',
     placeholder: 'Dán bảng đã copy từ trang sinh viên UFL vào đây...',
     features: {
       byWeek: false, // UFL uses dates, not weeks

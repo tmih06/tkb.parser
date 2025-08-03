@@ -22,24 +22,58 @@
  * SOFTWARE.
  */
 
-import { Box, Button, Card, Checkbox, Container, Flex, Link, Text, TextArea, TextField } from "@radix-ui/themes";
+import { Box, Button, Card, Container, Flex, Text, TextArea } from "@radix-ui/themes";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Footer from "./components/Footer";
-import Parser, { TKBType } from "./core/parser";
-import timeRange from "./core/range";
+import UniversitySwitcher from "./components/UniversitySwitcher";
+import UniversityFeatures from "./components/UniversityFeatures";
+import createUniversityParser, { TKBType } from "./core/universityParser";
+import parseUFLFormat from "./core/uflParser";
+import getUniversityTimeRange from "./core/universityTimeRange";
 import html2canvas from "html2canvas-pro";
 import tbCls from "./table.module.scss";
 import { useTheme } from "./main";
+import { UniversityConfig, getDefaultUniversity } from "./config/universities";
 // import NextLession from "./components/NextLesson";
 
 export default function App() {
     const { theme, setTheme } = useTheme();
+    const [selectedUniversity, setSelectedUniversity] = useState<UniversityConfig>(() => getDefaultUniversity());
     const [byWeek, setByWeek] = useState(localStorage.getItem('byWeek') === 'true' || false);
     const [showOnlyAvailable, setShowOnlyAvailable] = useState(localStorage.getItem('showOnlyAvailable') === 'true' || false);
     const [onlyToday, setOnlyToday] = useState(localStorage.getItem('onlyToday') === 'true' || false);
     const [week, setWeek] = useState(localStorage.getItem('week') ? Number(localStorage.getItem('week')) : 0);
     const [data, setData] = useState(localStorage.getItem('data') || '');
+    const [customFeatures, setCustomFeatures] = useState<Record<string, boolean>>(() => {
+        const saved = localStorage.getItem('customFeatures');
+        return saved ? JSON.parse(saved) : {};
+    });
     const tableRef = useRef<HTMLTableElement>(null);
+
+    // Save university selection
+    useEffect(() => {
+        localStorage.setItem('selectedUniversity', selectedUniversity.id);
+    }, [selectedUniversity]);
+
+    // Save custom features
+    useEffect(() => {
+        localStorage.setItem('customFeatures', JSON.stringify(customFeatures));
+    }, [customFeatures]);
+
+    const handleUniversityChange = (university: UniversityConfig) => {
+        setSelectedUniversity(university);
+        // Reset features based on new university's capabilities
+        setByWeek(university.features.byWeek && byWeek);
+        setShowOnlyAvailable(university.features.showOnlyAvailable && showOnlyAvailable);
+        setOnlyToday(university.features.onlyToday && onlyToday);
+        
+        // Initialize custom features with default values
+        const newCustomFeatures: Record<string, boolean> = {};
+        university.features.customFeatures?.forEach(feature => {
+            newCustomFeatures[feature.id] = customFeatures[feature.id] ?? feature.defaultValue;
+        });
+        setCustomFeatures(newCustomFeatures);
+    };
 
     useEffect(() => {
         localStorage.setItem('data', data);
@@ -63,28 +97,41 @@ export default function App() {
 
     const scheduleData = useMemo<TKBType[]>(() => {
         const d: TKBType[] = [];
-        data.replace(/\r\n/g, "\n").split('\n').map((line) => {
-            if (line === '') return null;
+        
+        if (selectedUniversity.id === 'ufl') {
+            // For UFL, parse the entire input at once since each line is a complete course
+            const courses = parseUFLFormat(data);
+            d.push(...courses);
+        } else {
+            // For other universities, parse line by line
+            const universityParser = createUniversityParser(selectedUniversity);
+            
+            data.replace(/\r\n/g, "\n").split('\n').map((line) => {
+                if (line === '') return null;
 
-            const parser = Parser(line);
-            if (parser) {
-                d.push(parser);
-            }
-        });
+                const parser = universityParser(line);
+                if (parser) {
+                    d.push(parser);
+                }
+            });
+        }
 
         return d;
-    }, [data]);
+    }, [data, selectedUniversity]);
 
-    const dt = useMemo(() => (
-        <>
-            {timeRange.filter((tra) => !showOnlyAvailable || scheduleData.some(d =>
-                d.time.some(t => t.lsStart <= tra.lessonNumber && t.lsEnd >= tra.lessonNumber && (!byWeek || d.weekRange.some(wr => wr.from <= week && wr.to >= week)))
-            )).map((time, tr) => (
-                <tr key={tr}>
-                    <td>
-                        <Text size="1" style={{ fontSize: '12px', color: 'gray' }} color="gray">Tiết {time.lessonNumber}</Text>
-                        <br />
-                        <Text>{time.start} - {time.end}</Text>
+    const dt = useMemo(() => {
+        const universityTimeRange = getUniversityTimeRange(selectedUniversity);
+        
+        return (
+            <>
+                {universityTimeRange.filter((tra) => !showOnlyAvailable || scheduleData.some(d =>
+                    d.time.some(t => t.lsStart <= tra.lessonNumber && t.lsEnd >= tra.lessonNumber && (!byWeek || d.weekRange.some(wr => wr.from <= week && wr.to >= week)))
+                )).map((time, tr) => (
+                    <tr key={tr}>
+                        <td>
+                            <Text size="1" style={{ fontSize: '12px', color: 'gray' }} color="gray">Tiết {time.lessonNumber}</Text>
+                            <br />
+                            <Text>{time.start} - {time.end}</Text>
                     </td>
                     {Array.from({ length: 7 }, (_, i) => i + 2).map(day => (onlyToday && (day === (new Date()).getDay() + 1 || (day === 8 && (new Date()).getDay() === 0)) || !onlyToday) && (
                         <td key={day}>
@@ -103,65 +150,39 @@ export default function App() {
                         </td>
                     ))}
                 </tr>
-            ))}
-        </>
-    ), [week, byWeek, scheduleData, showOnlyAvailable, onlyToday]);
-
-    return (
+                ))}
+            </>
+        );
+    }, [week, byWeek, scheduleData, showOnlyAvailable, onlyToday, selectedUniversity]);    return (
         <>
             <Container>
                 <Card my="3" mx="3" style={{ width: 'calc(100% - 2rem)', padding: '1.5rem' }}>
                     <Flex direction="column" gap="1">
-                        <Text size='6'>
-                            Tạo thời khoá biểu
-                            <Text as="span" ml="1" size="1" color="gray">for <Link color="gray" href="https://dut.udn.vn">DUT</Link> students</Text>
-                        </Text>
-                        <Text size='2' color="gray">
-                            Truy c&#x1EAD;p v&agrave;o trang <b>Sinh vi&ecirc;n &gt; C&aacute; nh&acirc;n &gt; L&#x1ECB;ch h&#x1ECD;c, thi &amp; kh&#x1EA3;o s&aacute;t &yacute; ki&#x1EBF;n</b>, sau đ&oacute; copy b&#x1EA3;ng l&#x1ECB;ch h&#x1ECD;c v&agrave;o đ&acirc;y. <Link target="_blank" href="https://youtu.be/wiavNgTzB9o">Xem video hướng dẫn</Link>.
-                            <br />
-                            Tất cả các khâu xử lí đều được thực hiện hoàn toàn trên trình duyệt của bạn không thông qua máy chủ thứ 3 nào. Thời khoá biểu đã nhập sẽ tự động lưu vào bộ nhớ của trình duyệt.
-                        </Text>
+                        <UniversitySwitcher 
+                            selectedUniversity={selectedUniversity}
+                            onUniversityChange={handleUniversityChange}
+                        />
                         <TextArea
                             size="1"
                             value={data}
                             onChange={(e) => setData(e.currentTarget.value)}
-                            style={{ margin: '1rem 0', fontSize: '12px', height: '200px', fontFamily: 'monospace, Consolas, source-code-pro, Menlo, Monaco, Lucida Console, Courier New, sans-serif' }} resize="vertical" placeholder="Dán bảng đã copy vào đây..." />
-                        <Flex align={{
-                            initial: 'start',
-                            sm: 'center'
-                        }} gap="2" style={{ marginBottom: '1rem' }} direction={{
-                            initial: 'column',
-                            sm: 'row'
-                        }}>
-                            <Flex gap="2" align="center">
-                                <Checkbox
-                                    checked={byWeek}
-                                    onCheckedChange={(e) => setByWeek(Boolean(e))}
-                                />
-                                Theo tuần
-                                <TextField.Root
-                                    disabled={!byWeek}
-                                    style={{ width: '3rem' }}
-                                    value={week}
-                                    onChange={(e) => setWeek(Number(e.currentTarget.value))}
-                                    size="1" type="number" placeholder="Tuần"
-                                />
-                            </Flex>
-                            <Flex gap="2" align="center">
-                                <Checkbox
-                                    checked={showOnlyAvailable}
-                                    onCheckedChange={(e) => setShowOnlyAvailable(Boolean(e))}
-                                />
-                                Chỉ hiển thị mốc thời gian có lịch học
-                            </Flex>
-                            <Flex gap="2" align="center">
-                                <Checkbox
-                                    checked={onlyToday}
-                                    onCheckedChange={(e) => setOnlyToday(Boolean(e))}
-                                />
-                                Chỉ hiển thị lịch học hôm nay
-                            </Flex>
-                        </Flex>
+                            style={{ margin: '1rem 0', fontSize: '12px', height: '200px', fontFamily: 'monospace, Consolas, source-code-pro, Menlo, Monaco, Lucida Console, Courier New, sans-serif' }} 
+                            resize="vertical" 
+                            placeholder={selectedUniversity.placeholder} 
+                        />
+                        <UniversityFeatures
+                            selectedUniversity={selectedUniversity}
+                            byWeek={byWeek}
+                            setByWeek={setByWeek}
+                            week={week}
+                            setWeek={setWeek}
+                            showOnlyAvailable={showOnlyAvailable}
+                            setShowOnlyAvailable={setShowOnlyAvailable}
+                            onlyToday={onlyToday}
+                            setOnlyToday={setOnlyToday}
+                            customFeatures={customFeatures}
+                            setCustomFeatures={setCustomFeatures}
+                        />
                         <Flex align="center" gap="1">
                             <Button
                                 color="red"
@@ -184,7 +205,7 @@ export default function App() {
                                         backgroundColor: theme === 'dark' ? '#212225' : '#fff',
                                     }).then(function (canvas) {
                                         const link = document.createElement('a');
-                                        link.download = 'dut.tkb.parser-' + Date.now() + '.png';
+                                        link.download = `${selectedUniversity.shortName.toLowerCase()}.tkb.parser-${Date.now()}.png`;
                                         link.href = canvas.toDataURL('image/png');
                                         link.click();
                                         link.remove();

@@ -1,0 +1,49 @@
+1	Pháp luật đại cương	2	Pháp luật đại cương-06	
+03/02/2025- 23/02/2025
+24/03/2025- 15/06/2025	5
+5	3-4
+3-4	DB302
+DB302	Lê Đình Quang Phúc
+Lê Đình Quang Phúc
+2	Tiếng Việt	2	Tiếng Việt-06	
+03/02/2025- 23/02/2025
+24/03/2025- 15/06/2025	3
+3	3-4
+3-4	DB302
+DB302	Trần Văn Sáng
+Trần Văn Sáng
+3	Kỹ năng tiếng B1.3	4	Kỹ năng tiếng B1.3-11	
+03/02/2025- 23/02/2025
+24/03/2025- 15/06/2025	7
+7	1-4
+1-4	DA101
+DA101	Thiều Hoàng Mỹ
+Thiều Hoàng Mỹ
+4	Kỹ năng tiếng B1.4	4	Kỹ năng tiếng B1.4-10	
+03/02/2025- 23/02/2025
+24/03/2025- 15/06/2025	2
+2	1-4
+1-4	DB103
+DB103	Trần Bảo Uyên Như
+Trần Bảo Uyên Như
+5	Dẫn nhập Ngữ âm - Âm vị học tiếng Anh	2	Dẫn nhập Ngữ âm - Âm vị học tiếng Anh-12	
+03/02/2025- 23/02/2025
+24/03/2025- 15/06/2025	6
+6	9-10
+9-10	DC402
+DC402	Nguyễn Khoa Diệu Hạnh
+Nguyễn Khoa Diệu Hạnh
+6	Ngữ pháp tiếng Anh căn bản 2	2	Ngữ pháp tiếng Anh căn bản 2-06	
+03/02/2025- 23/02/2025
+24/03/2025- 15/06/2025	7
+7	6-7
+6-7	DC301
+DC301	Lê Quang Phúc
+Lê Quang Phúc
+7	Giáo dục thể chất 2 (Bóng chuyền )	1	Giáo dục thể chất 2 (Bóng chuyền ) (Nam+ Nữ) 03 SVNNA	
+03/02/2025- 23/02/2025
+24/03/2025- 15/06/2025	4
+4	1-4
+1-4	GDTC CS L Nh Hộc
+GDTC CS L Nh Hộc	Nguyễn Ngọc Quỳnh Dung
+Nguyễn Ngọc Quỳnh Dung

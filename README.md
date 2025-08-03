@@ -1,15 +1,15 @@
-# dut.tkb.parser
+# tkb.parser
 
-Visit the [project main page](https://michioxd.github.io/dut.tkb.parser/) for more information.
+Forked from [dut.tkb.parser](https://github.com/michioxd/dut.tkb.parser)
 
 ## Development
 
 ```sh
 # Clone the repository
-git clone https://github.com/michioxd/dut.tkb.parser
+git clone https://github.com/tmih06/tkb.parser.git
 
 # Install dependencies
-cd dut.tkb.parser
+cd tkb.parser
 pnpm i
 
 # Run the development server

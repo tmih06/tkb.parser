@@ -29,9 +29,11 @@ import Parser, { TKBType } from "./core/parser";
 import timeRange from "./core/range";
 import html2canvas from "html2canvas-pro";
 import tbCls from "./table.module.scss";
+import { useTheme } from "./main";
 // import NextLession from "./components/NextLesson";
 
 export default function App() {
+    const { theme, setTheme } = useTheme();
     const [byWeek, setByWeek] = useState(localStorage.getItem('byWeek') === 'true' || false);
     const [showOnlyAvailable, setShowOnlyAvailable] = useState(localStorage.getItem('showOnlyAvailable') === 'true' || false);
     const [onlyToday, setOnlyToday] = useState(localStorage.getItem('onlyToday') === 'true' || false);
@@ -179,7 +181,7 @@ export default function App() {
 
                                     html2canvas(tableRef.current, {
                                         allowTaint: true,
-                                        backgroundColor: window.matchMedia('(prefers-color-scheme: dark)').matches ? '#212225' : '#fff',
+                                        backgroundColor: theme === 'dark' ? '#212225' : '#fff',
                                     }).then(function (canvas) {
                                         const link = document.createElement('a');
                                         link.download = 'dut.tkb.parser-' + Date.now() + '.png';
@@ -192,6 +194,13 @@ export default function App() {
                             <a href="https://youtu.be/wiavNgTzB9o" target="_blank" rel="noreferrer">
                                 <Button variant="soft" color="cyan">Xem hướng dẫn</Button>
                             </a>
+                            <Button
+                                variant="soft"
+                                className={theme === 'dark' ? tbCls.themeToggleLight : tbCls.themeToggleDark}
+                                onClick={() => {
+                                    setTheme(theme === 'dark' ? 'light' : 'dark');
+                                }}
+                            >Đổi giao diện</Button>
                         </Flex>
                     </Flex>
                 </Card>

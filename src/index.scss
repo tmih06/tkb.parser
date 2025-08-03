@@ -17,6 +17,22 @@ body {
     --heading-font-family: 'Inter', sans-serif;
 }
 
+/* Smooth theme transitions */
+.radix-themes,
+.radix-themes *,
+.radix-themes *::before,
+.radix-themes *::after {
+    transition: background-color 0.3s ease, color 0.1s ease, border-color 0.1s ease, box-shadow 0.1s ease !important;
+}
+
+/* Prevent transitions on page load */
+.radix-themes.no-transition,
+.radix-themes.no-transition *,
+.radix-themes.no-transition *::before,
+.radix-themes.no-transition *::after {
+    transition: none !important;
+}
+
 ::-webkit-scrollbar {
     width: 10px;
     height: 10px;

@@ -40,16 +40,8 @@ export default function UniversitySwitcher({ selectedUniversity, onUniversityCha
   };
 
   const getAssetUrl = (path: string) => {
-    // Use Vite's base URL consistently for both dev and production
-    const cleanPath = path.startsWith('/') ? path.slice(1) : path;
-    const baseUrl = import.meta.env.BASE_URL;
-    
-    // Fallback: if BASE_URL is just "/" and we're in production, use GitHub Pages path
-    const finalBaseUrl = (baseUrl === '/' && import.meta.env.PROD) ? '/tkb.parser/' : baseUrl;
-    
-    const fullUrl = finalBaseUrl + cleanPath;
-    console.log('BASE_URL:', baseUrl, 'Final Base URL:', finalBaseUrl, 'Clean Path:', cleanPath, 'Full URL:', fullUrl, 'PROD:', import.meta.env.PROD);
-    return fullUrl;
+    // fuck it, i quit
+    return path;
   };
 
   return (

@@ -40,8 +40,10 @@ export default function UniversitySwitcher({ selectedUniversity, onUniversityCha
   };
 
   const getAssetUrl = (path: string) => {
-    // Use Vite's base URL for assets in public folder
-    return `${import.meta.env.BASE_URL}${path}`;
+    // Hardcode the base path for GitHub Pages
+    const cleanPath = path.startsWith('/') ? path.slice(1) : path;
+    const baseUrl = import.meta.env.DEV ? '/' : '/tkb.parser/';
+    return `${baseUrl}${cleanPath}`;
   };
 
   return (

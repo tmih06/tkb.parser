@@ -3,7 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "homepage": "https://tmih06.github.io/tkb.parser",
   "scripts": {
+    "deploy": "gh-pages -d dist",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
@@ -28,6 +30,7 @@
     "eslint-plugin-react-hooks": "^5.0.0",
     "eslint-plugin-react-refresh": "^0.4.18",
     "eslint-plugin-simple-header": "^1.2.2",
+    "gh-pages": "^6.3.0",
     "globals": "^15.14.0",
     "jiti": "^2.4.2",
     "teaser": "^0.1.1",

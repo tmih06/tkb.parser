@@ -28,18 +28,19 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 // https://vite.dev/config/
 export default defineConfig({
+  base: '/tkb.parser/',
   plugins: [
     react(),
     VitePWA({
       manifest: {
         name: 'Tạo thời khoá biểu DUT',
-        short_name: 'dut.tkb.parser',
+        short_name: 'tkb.parser',
         description: 'Tạo thời khoá biểu',
         theme_color: '#ffffff',
         display: "standalone",
         icons: [
-          { src: "/dut.tkb.parser/android-chrome-192x192.png", sizes: "192x192", type: "image/png" },
-          { src: "/dut.tkb.parser/android-chrome-512x512.png", sizes: "512x512", type: "image/png" }
+          { src: "/tkb.parser/android-chrome-192x192.png", sizes: "192x192", type: "image/png" },
+          { src: "/tkb.parser/android-chrome-512x512.png", sizes: "512x512", type: "image/png" }
         ]
       }
     })

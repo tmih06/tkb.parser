@@ -23720,6 +23720,7 @@ const UNIVERSITIES = [
     logoPath: "	https://github.com/tmih06/tkb.parser/blob/main/public/logos/ufl-logo.png?raw=true",
     url: "https://ufl.udn.vn/",
     instructions: "Truy cập vào hệ thống quản lý học tập, tìm phần lịch học và copy bảng thời khóa biểu.",
+    videoUrl: "https://github.com/tmih06/tkb.parser/blob/main/public/tutorial/ufl-tutorial.mp4",
     placeholder: "Dán bảng đã copy từ trang sinh viên UFL vào đây...",
     features: {
       byWeek: false,
@@ -32741,7 +32742,7 @@ function App() {
             children: "Lưu lại thành file ảnh"
           }
         ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("a", { href: "https://youtu.be/wiavNgTzB9o", target: "_blank", rel: "noreferrer", children: /* @__PURE__ */ jsxRuntimeExports.jsx(o$j, { variant: "soft", color: "cyan", children: "Xem hướng dẫn" }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("a", { href: selectedUniversity.videoUrl, target: "_blank", rel: "noreferrer", children: /* @__PURE__ */ jsxRuntimeExports.jsx(o$j, { variant: "soft", color: "cyan", children: "Xem hướng dẫn" }) }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(
           o$j,
           {

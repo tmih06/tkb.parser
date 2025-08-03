@@ -200,15 +200,32 @@ export default function App() {
                                 onClick={() => {
                                     if (!tableRef.current) return;
 
+                                    // Add export mode class for better contrast in light theme
+                                    const hadExportMode = tableRef.current.classList.contains(tbCls.exportMode);
+                                    if (theme === 'light') {
+                                        tableRef.current.classList.add(tbCls.exportMode);
+                                    }
+
                                     html2canvas(tableRef.current, {
                                         allowTaint: true,
                                         backgroundColor: theme === 'dark' ? '#212225' : '#fff',
                                     }).then(function (canvas) {
+                                        // Remove export mode class after capture
+                                        if (theme === 'light' && !hadExportMode) {
+                                            tableRef.current?.classList.remove(tbCls.exportMode);
+                                        }
+                                        
                                         const link = document.createElement('a');
                                         link.download = `${selectedUniversity.shortName.toLowerCase()}.tkb.parser-${Date.now()}.png`;
                                         link.href = canvas.toDataURL('image/png');
                                         link.click();
                                         link.remove();
+                                    }).catch(function (error) {
+                                        // Remove export mode class on error too
+                                        if (theme === 'light' && !hadExportMode) {
+                                            tableRef.current?.classList.remove(tbCls.exportMode);
+                                        }
+                                        console.error('Export failed:', error);
                                     });
                                 }}
                             >Lưu lại thành file ảnh</Button>

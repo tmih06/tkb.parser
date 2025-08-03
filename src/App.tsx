@@ -199,7 +199,8 @@ export default function App() {
                                 disabled={scheduleData.length < 1}
                                 onClick={() => {
                                     if (!tableRef.current) return;
-
+                                    tableRef.current.style.transition = 'none';
+                                    tableRef.current.style.animation = 'none';
                                     html2canvas(tableRef.current, {
                                         allowTaint: true,
                                         backgroundColor: theme === 'dark' ? '#212225' : '#fff',

@@ -25,19 +25,26 @@
 import { TKBType } from './universityParser';
 
 export function parseUFLFormat(input: string): TKBType[] {
-    const lines = input.trim().split('\n').map(line => line.trim()).filter(line => line.length > 0);
-    if (lines.length < 2) return [];
-
-    // Filter out LMS3 and URL lines
-    const filteredLines = lines.filter(line => {
-        // Skip LMS3 lines
-        if (line === 'LMS3') return false;
-        // Skip URLs (lines starting with http)
-        if (line.startsWith('http')) return false;
-        return true;
-    });
-
     try {
+        console.log('Starting UFL parsing with input length:', input.length);
+        
+        const lines = input.trim().split('\n').map(line => line.trim()).filter(line => line.length > 0);
+        if (lines.length < 2) {
+            console.log('Not enough lines to parse');
+            return [];
+        }
+
+        // Filter out LMS3 and URL lines
+        const filteredLines = lines.filter(line => {
+            // Skip LMS3 lines
+            if (line === 'LMS3') return false;
+            // Skip URLs (lines starting with http)
+            if (line.startsWith('http')) return false;
+            return true;
+        });
+        
+        console.log('Filtered lines count:', filteredLines.length);
+
        const allCourses: TKBType[] = [];
     
         // Process lines dynamically - some courses have 7 lines, some have 2 lines

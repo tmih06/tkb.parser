@@ -46,6 +46,12 @@ export default defineConfig({
     })
   ],
   build: {
-    minify: false  // Disabled for debugging
+    minify: false,  // Disabled for debugging
+    sourcemap: true, // Enable source maps for better debugging
+    rollupOptions: {
+      output: {
+        manualChunks: undefined // Disable chunk splitting for simpler debugging
+      }
+    }
   }
 })

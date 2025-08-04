@@ -33,6 +33,8 @@ import './index.scss';
 import App from './App'
 import { Theme } from '@radix-ui/themes';
 
+console.log('TKB Parser starting...', new Date().toISOString());
+
 // Theme context
 const ThemeContext = createContext<{
   theme: 'dark' | 'light';

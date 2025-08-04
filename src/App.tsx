@@ -237,7 +237,7 @@ export default function App() {
                                 <Box className={tbCls.card}
                                     key={d.id + day + ind}>
                                     <Box style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                                        <Text>{d.name}</Text>
+                                        <Text weight="bold">{d.name}</Text>
                                         {d.displayTimeInfo && (
                                             <Text size="1" style={{ fontSize: '12px', color: 'gray' }} color="gray">{d.displayTimeInfo}</Text>
                                         )}

@@ -13,3 +13,18 @@ HB102
 HB101	Nguyễn Nữ Thùy Uyên
 Nguyễn Nữ Thùy Uyên
 Nguyễn Nữ Thùy Uyên
+
+6	Giáo dục thể chất 4 (Vovinam 2)(Nam+Nữ)	1	Giáo dục thể chất 4 (Vovinam 2)-(sv Nam, Nữ) 03	
+01/01/2024- 04/02/2024
+19/02/2024- 28/04/2024	3
+3	7-10
+7-10		Khoa GDTC
+Khoa GDTC
+
+1	Pháp luật đại cương	2	Pháp luật đại cương-06	
+03/02/2025- 23/02/2025
+24/03/2025- 15/06/2025	5
+5	3-4
+3-4	DB302
+DB302	Lê Đình Quang Phúc
+Lê Đình Quang Phúc

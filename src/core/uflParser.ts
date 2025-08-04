@@ -82,13 +82,19 @@ export function parseUFLFormat(input: string): TKBType[] {
                 
             } else if (dateLineCount >= 2 || (nextLine.includes('/') && !nextLine.includes('\t')) || 
                       (nextLine.split('\t').length < 3)) {
-                // Handle 7-line format (with GDQP breaks)
+                // Handle 7-line format (with GDQP breaks) or 6-line format (GDTC)
+                // Check if we have enough lines for processing
+                if (i + 5 >= filteredLines.length) {
+                    // Not enough lines, skip
+                    continue;
+                }
+                
                 const dateLine1 = filteredLines[i + 1];  // First date range
                 const dateLine2 = filteredLines[i + 2];  // Second date range + day1
-                const dayLine2 = filteredLines[i + 3];   // Day2 + time1
-                const timeLine2 = filteredLines[i + 4];  // Time2 + room1
-                const roomLine2 = filteredLines[i + 5];  // Room2 + instructor1
-                const instructorLine2 = filteredLines[i + 6]; // Instructor2
+                const dayLine2 = filteredLines[i + 3] || '';   // Day2 + time1
+                const timeLine2 = filteredLines[i + 4] || '';  // Time2 + room1
+                const roomLine2 = filteredLines[i + 5] || '';  // Room2 + instructor1
+                const instructorLine2 = filteredLines[i + 6] || ''; // Instructor2 (may not exist for 6-line)
                 
                 // Parse date ranges
                 const dateRange1 = dateLine1.trim();
@@ -103,18 +109,29 @@ export function parseUFLFormat(input: string): TKBType[] {
                 
                 const timeLine2Parts = timeLine2.split('\t');
                 const time2 = timeLine2Parts[0] || '';
-                const room1 = timeLine2Parts[1] || '';
+                const room1 = timeLine2Parts[1] || '-';
                 
                 const roomLine2Parts = roomLine2.split('\t');
-                const room2 = roomLine2Parts[0] || '';
+                const room2 = roomLine2Parts[0] || '-';
                 const instructor1 = roomLine2Parts[1] || '';
                 
-                const instructor2 = instructorLine2.trim();
+                const instructor2 = instructorLine2 ? instructorLine2.trim() : '';
+                
+                // For 6-line format (like GDTC), if no instructor found in normal positions,
+                // take the last line as instructor
+                let finalInstructor1 = instructor1;
+                let finalInstructor2 = instructor2;
+                
+                if (!instructor1 && !instructor2 && roomLine2) {
+                    // This might be a 6-line format where the last line is instructor
+                    finalInstructor1 = roomLine2.trim();
+                    finalInstructor2 = roomLine2.trim();
+                }
                 
                 // Create courses for each schedule (take the first valid one)
                 const schedules = [
-                    { day: day1, time: time1, room: room1, instructor: instructor1 },
-                    { day: day2, time: time2, room: room2, instructor: instructor2 }
+                    { day: day1, time: time1, room: room1, instructor: finalInstructor1 },
+                    { day: day2, time: time2, room: room2, instructor: finalInstructor2 }
                 ].filter(s => s.day >= 2 && s.day <= 7 && s.time.includes('-'));
                 
                 const schedule = schedules[0];
@@ -147,10 +164,10 @@ export function parseUFLFormat(input: string): TKBType[] {
                                 const course: TKBType = {
                                     id: id || name,
                                     name,
-                                    instructor: schedule.instructor || 'Chưa xác định',
+                                    instructor: schedule.instructor || '-',
                                     time: [{
                                         date: schedule.day,
-                                        class: schedule.room || '',
+                                        class: schedule.room === '-' ? '-' : (schedule.room || '-'),
                                         lsStart,
                                         lsEnd
                                     }],
@@ -168,10 +185,10 @@ export function parseUFLFormat(input: string): TKBType[] {
                             const course: TKBType = {
                                 id: id || name,
                                 name,
-                                instructor: schedule.instructor || 'Chưa xác định',
+                                instructor: schedule.instructor || '-',
                                 time: [{
                                     date: schedule.day,
-                                    class: schedule.room || '',
+                                    class: schedule.room === '-' ? '-' : (schedule.room || '-'),
                                     lsStart,
                                     lsEnd
                                 }],
@@ -185,8 +202,10 @@ export function parseUFLFormat(input: string): TKBType[] {
                     }
                 }
                 
-                // Skip to after this 7-line course
-                i += 6;
+                // Skip to after this 7-line course (or 6-line for GDTC)
+                // Check if instructor2 line exists
+                const skipLines = 5;
+                i += skipLines;
                 
             } else if (i + 1 < filteredLines.length) {
                 // Handle 2-line format (normal format)
@@ -231,10 +250,10 @@ export function parseUFLFormat(input: string): TKBType[] {
                             const course: TKBType = {
                                 id: id || name,
                                 name,
-                                instructor: instructor || 'Chưa xác định',
+                                instructor: instructor || '-',
                                 time: [{
                                     date: day,
-                                    class: room || '',
+                                    class: room || '-',
                                     lsStart,
                                     lsEnd
                                 }],
@@ -256,8 +275,6 @@ export function parseUFLFormat(input: string): TKBType[] {
         // Add time information to course names instead of deduplicating
         const coursesWithTimeInfo = addTimeInfoToCourses(allCourses);
         
-        console.log('Parsed UFL courses (national defense format):', coursesWithTimeInfo);
-        console.log('Note: Schedule includes National Defense Education break period');
         return coursesWithTimeInfo;
         
     } catch (error) {
@@ -394,10 +411,10 @@ function parseThreeTimelineFormat(filteredLines: string[], startIndex: number, n
                 const course: TKBType = {
                     id: id || name,
                     name,
-                    instructor: timeline.instructor || 'Chưa xác định',
+                    instructor: timeline.instructor || '-',
                     time: [{
                         date: timeline.day,
-                        class: timeline.room || '',
+                        class: timeline.room || '-',
                         lsStart,
                         lsEnd
                     }],

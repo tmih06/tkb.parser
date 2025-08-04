@@ -32819,7 +32819,7 @@ function App() {
   const [byWeek, setByWeek] = reactExports.useState(localStorage.getItem("byWeek") === "true" || false);
   const [showOnlyAvailable, setShowOnlyAvailable] = reactExports.useState(localStorage.getItem("showOnlyAvailable") === "true" || false);
   const [onlyToday, setOnlyToday] = reactExports.useState(localStorage.getItem("onlyToday") === "true" || false);
-  const [mergeTimeRanges, setMergeTimeRanges] = reactExports.useState(localStorage.getItem("mergeTimeRanges") === "true" || false);
+  const [mergeTimeRanges, setMergeTimeRanges] = reactExports.useState(localStorage.getItem("mergeTimeRanges") !== "false");
   const [week, setWeek] = reactExports.useState(localStorage.getItem("week") ? Number(localStorage.getItem("week")) : 0);
   const [data, setData] = reactExports.useState(localStorage.getItem("data") || "");
   const [customFeatures, setCustomFeatures] = reactExports.useState(() => {
@@ -33124,4 +33124,4 @@ const ThemeMatcher = ({ children }) => {
 clientExports.createRoot(document.getElementById("root")).render(
   /* @__PURE__ */ jsxRuntimeExports.jsx(reactExports.StrictMode, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(ThemeMatcher, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(App, {}) }) })
 );
-//# sourceMappingURL=index-hjryA4QK.js.map
+//# sourceMappingURL=index-B20t2HWH.js.map

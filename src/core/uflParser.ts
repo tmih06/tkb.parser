@@ -28,17 +28,237 @@ export function parseUFLFormat(input: string): TKBType[] {
     const lines = input.trim().split('\n').map(line => line.trim()).filter(line => line.length > 0);
     if (lines.length < 2) return [];
 
+    // Filter out LMS3 and URL lines
+    const filteredLines = lines.filter(line => {
+        // Skip LMS3 lines
+        if (line === 'LMS3') return false;
+        // Skip URLs (lines starting with http)
+        if (line.startsWith('http')) return false;
+        return true;
+    });
+
     try {
-        // Check if there's a "Giáo dục quốc phòng" subject (National Defense Education)
-        const hasNationalDefense = input.toLowerCase().includes('giáo dục quốc phòng');
-        
-        if (hasNationalDefense) {
-            // Parse format like test-ufl.txt (with duplicated data and multiple lines per course)
-            return parseNationalDefenseFormat(lines);
-        } else {
-            // Parse format like test-ufl2.txt (normal format, 2 lines per course)
-            return parseNormalFormat(lines);
+       const allCourses: TKBType[] = [];
+    
+        // Process lines dynamically - some courses have 7 lines, some have 2 lines
+        for (let i = 0; i < filteredLines.length; i++) {
+            const courseLine = filteredLines[i];
+            
+            // Skip if not a course start line
+            if (!/^\d+\t/.test(courseLine)) continue;
+            
+            // Parse course info line
+            const courseParts = courseLine.split('\t');
+            if (courseParts.length < 4) continue;
+            
+            const name = courseParts[1];
+            const id = courseParts[3];
+            
+            // Check if this is a 7-line format, 2-line format, or 12-line format (3 timelines)
+            // Look at the next few lines to determine format
+            if (i + 1 >= filteredLines.length) continue;
+            
+            const nextLine = filteredLines[i + 1];
+            
+            // Count how many consecutive date lines we have after the course line
+            let dateLineCount = 0;
+            for (let j = i + 1; j < filteredLines.length && j < i + 5; j++) {
+                if (filteredLines[j].includes('/') && filteredLines[j].includes('-')) {
+                    dateLineCount++;
+                } else {
+                    break;
+                }
+            }
+            
+            // Determine format based on date line count and structure
+            if (dateLineCount >= 3) {
+                // Handle 12-line format (3 timelines)
+                const course = parseThreeTimelineFormat(filteredLines, i, name, id);
+                if (course.length > 0) {
+                    allCourses.push(...course);
+                }
+                // Skip to after this 12-line course (approximately)
+                i += 11;
+                
+            } else if (dateLineCount >= 2 || (nextLine.includes('/') && !nextLine.includes('\t')) || 
+                      (nextLine.split('\t').length < 3)) {
+                // Handle 7-line format (with GDQP breaks)
+                const dateLine1 = filteredLines[i + 1];  // First date range
+                const dateLine2 = filteredLines[i + 2];  // Second date range + day1
+                const dayLine2 = filteredLines[i + 3];   // Day2 + time1
+                const timeLine2 = filteredLines[i + 4];  // Time2 + room1
+                const roomLine2 = filteredLines[i + 5];  // Room2 + instructor1
+                const instructorLine2 = filteredLines[i + 6]; // Instructor2
+                
+                // Parse date ranges
+                const dateRange1 = dateLine1.trim();
+                const dateLine2Parts = dateLine2.split('\t');
+                const dateRange2 = dateLine2Parts[0];
+                const day1 = parseInt(dateLine2Parts[1] || '0');
+                
+                // Parse schedule info
+                const dayLine2Parts = dayLine2.split('\t');
+                const day2 = parseInt(dayLine2Parts[0] || '0');
+                const time1 = dayLine2Parts[1] || '';
+                
+                const timeLine2Parts = timeLine2.split('\t');
+                const time2 = timeLine2Parts[0] || '';
+                const room1 = timeLine2Parts[1] || '';
+                
+                const roomLine2Parts = roomLine2.split('\t');
+                const room2 = roomLine2Parts[0] || '';
+                const instructor1 = roomLine2Parts[1] || '';
+                
+                const instructor2 = instructorLine2.trim();
+                
+                // Create courses for each schedule (take the first valid one)
+                const schedules = [
+                    { day: day1, time: time1, room: room1, instructor: instructor1 },
+                    { day: day2, time: time2, room: room2, instructor: instructor2 }
+                ].filter(s => s.day >= 2 && s.day <= 7 && s.time.includes('-'));
+                
+                const schedule = schedules[0];
+                if (schedule) {
+                    const timeMatch = schedule.time.match(/^(\d+)-(\d+)$/);
+                    if (timeMatch) {
+                        const lsStart = parseInt(timeMatch[1]);
+                        const lsEnd = parseInt(timeMatch[2]);
+                        
+                        // Parse date ranges for week calculation
+                        const allDateRanges = [dateRange1, dateRange2].filter(d => d && d.includes('/'));
+                        
+                        // Create separate courses for each date range
+                        for (const range of allDateRanges) {
+                            const dateMatch = range.trim().match(/(\d{2}\/\d{2}\/\d{4})-\s*(\d{2}\/\d{2}\/\d{4})/);
+                            if (dateMatch) {
+                                const startDate = new Date(dateMatch[1].split('/').reverse().join('-'));
+                                const endDate = new Date(dateMatch[2].split('/').reverse().join('-'));
+                                
+                                // Calculate week numbers based on semester start
+                                const semesterStart = new Date('2025-02-03');
+                                const startWeek = Math.floor((startDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
+                                const endWeek = Math.floor((endDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
+                                
+                                const singleWeekRange = [{
+                                    from: Math.max(1, startWeek),
+                                    to: Math.max(1, endWeek)
+                                }];
+                                
+                                const course: TKBType = {
+                                    id: id || name,
+                                    name,
+                                    instructor: schedule.instructor || 'Chưa xác định',
+                                    time: [{
+                                        date: schedule.day,
+                                        class: schedule.room || '',
+                                        lsStart,
+                                        lsEnd
+                                    }],
+                                    weekRange: singleWeekRange,
+                                    originalDateRanges: [range.trim()],
+                                    displayTimeInfo: ''
+                                };
+                                
+                                allCourses.push(course);
+                            }
+                        }
+                        
+                        // If no valid date ranges found, create a default course
+                        if (allDateRanges.length === 0) {
+                            const course: TKBType = {
+                                id: id || name,
+                                name,
+                                instructor: schedule.instructor || 'Chưa xác định',
+                                time: [{
+                                    date: schedule.day,
+                                    class: schedule.room || '',
+                                    lsStart,
+                                    lsEnd
+                                }],
+                                weekRange: [{ from: 1, to: 16 }],
+                                originalDateRanges: [],
+                                displayTimeInfo: ''
+                            };
+                            
+                            allCourses.push(course);
+                        }
+                    }
+                }
+                
+                // Skip to after this 7-line course
+                i += 6;
+                
+            } else if (i + 1 < filteredLines.length) {
+                // Handle 2-line format (normal format)
+                const scheduleLine = filteredLines[i + 1];
+                const scheduleParts = scheduleLine.split('\t');
+                
+                if (scheduleParts.length >= 5) {
+                    const dateRange = scheduleParts[0];
+                    const dayStr = scheduleParts[1];
+                    const timeSlot = scheduleParts[2];
+                    const room = scheduleParts[3];
+                    const instructor = scheduleParts[4] || '';
+                    
+                    const day = parseInt(dayStr);
+                    if (day >= 2 && day <= 7) {
+                        const timeMatch = timeSlot.match(/^(\d+)-(\d+)$/);
+                        if (timeMatch) {
+                            const lsStart = parseInt(timeMatch[1]);
+                            const lsEnd = parseInt(timeMatch[2]);
+                            
+                            // Parse date range for week calculation
+                            const weekRange: TKBType['weekRange'] = [];
+                            const dateMatch = dateRange.match(/(\d{2}\/\d{2}\/\d{4})-\s*(\d{2}\/\d{2}\/\d{4})/);
+                            if (dateMatch) {
+                                const startDate = new Date(dateMatch[1].split('/').reverse().join('-'));
+                                const endDate = new Date(dateMatch[2].split('/').reverse().join('-'));
+                                
+                                // Calculate week numbers based on semester start
+                                const semesterStart = startDate.getFullYear() === 2024 ? 
+                                    new Date('2024-09-01') : new Date('2025-02-03');
+                                const startWeek = Math.floor((startDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
+                                const endWeek = Math.floor((endDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
+                                
+                                weekRange.push({
+                                    from: Math.max(1, startWeek),
+                                    to: Math.max(1, endWeek)
+                                });
+                            } else {
+                                weekRange.push({ from: 1, to: 16 });
+                            }
+                            
+                            const course: TKBType = {
+                                id: id || name,
+                                name,
+                                instructor: instructor || 'Chưa xác định',
+                                time: [{
+                                    date: day,
+                                    class: room || '',
+                                    lsStart,
+                                    lsEnd
+                                }],
+                                weekRange,
+                                originalDateRanges: [dateRange],
+                                displayTimeInfo: ''
+                            };
+                            
+                            allCourses.push(course);
+                        }
+                    }
+                }
+                
+                // Skip to after this 2-line course
+                i += 1;
+            }
         }
+        
+        // Add time information to course names instead of deduplicating
+        const coursesWithTimeInfo = addTimeInfoToCourses(allCourses);
+        
+        console.log('Parsed UFL courses (national defense format):', coursesWithTimeInfo);
+        console.log('Note: Schedule includes National Defense Education break period');
+        return coursesWithTimeInfo;
         
     } catch (error) {
         console.error('Error parsing UFL format:', error);
@@ -46,194 +266,152 @@ export function parseUFLFormat(input: string): TKBType[] {
     }
 }
 
-function parseNormalFormat(lines: string[]): TKBType[] {
-    const allCourses: TKBType[] = [];
+function addTimeInfoToCourses(courses: TKBType[]): TKBType[] {
+    const processedCourses: TKBType[] = [];
     
-    // Process lines in pairs (each course takes 2 lines)
-    for (let i = 0; i < lines.length - 1; i += 2) {
-        const line1 = lines[i];
-        const line2 = lines[i + 1];
-        
-        // Skip lines that don't look like course entries
-        if (!line1.includes('\t') || !line2.includes('\t')) continue;
-        
-        // Parse first line: number, name, credits, code
-        const parts1 = line1.split('\t');
-        if (parts1.length < 4) continue;
-        
-        const name = parts1[1];
-        const id = parts1[3];
-        
-        // Parse second line: date, day, time, room, instructor
-        const parts2 = line2.split('\t');
-        if (parts2.length < 5) continue;
-        
-        const dateRange = parts2[0];
-        const dayStr = parts2[1];
-        const timeSlot = parts2[2];
-        const room = parts2[3];
-        const instructor = parts2[4] || '';
-        
-        // Parse day
-        const day = parseInt(dayStr);
-        if (day < 2 || day > 7) continue;
-        
-        // Parse time slot
-        const timeMatch = timeSlot.match(/^(\d+)-(\d+)$/);
-        if (!timeMatch) continue;
-        
-        const lsStart = parseInt(timeMatch[1]);
-        const lsEnd = parseInt(timeMatch[2]);
-        
-        // Parse date range for week calculation
-        const weekRange: TKBType['weekRange'] = [];
-        const dateMatch = dateRange.match(/(\d{2}\/\d{2}\/\d{4})-\s*(\d{2}\/\d{2}\/\d{4})/);
-        if (dateMatch) {
-            const startDate = new Date(dateMatch[1].split('/').reverse().join('-'));
-            const endDate = new Date(dateMatch[2].split('/').reverse().join('-'));
-            
-            // Calculate week numbers based on semester start
-            const semesterStart = new Date(startDate.getFullYear(), 8, 1); // September 1st
-            const startWeek = Math.floor((startDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
-            const endWeek = Math.floor((endDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
-            
-            weekRange.push({
-                from: Math.max(1, startWeek),
-                to: Math.max(1, endWeek)
-            });
-        } else {
-            weekRange.push({ from: 1, to: 16 });
+    for (const course of courses) {
+        // Add date range information from original date ranges to separate field
+        let timeInfo = '';
+        if (course.originalDateRanges && course.originalDateRanges.length > 0) {
+            const dateRanges = course.originalDateRanges.map(dateRange => {
+                const dateMatch = dateRange.trim().match(/(\d{2}\/\d{2}\/\d{4})-\s*(\d{2}\/\d{2}\/\d{4})/);
+                if (dateMatch) {
+                    const startDate = dateMatch[1];
+                    const endDate = dateMatch[2];
+                    return `${formatDateString(startDate)} - ${formatDateString(endDate)}`;
+                }
+                return dateRange;
+            }).join(', ');
+            timeInfo = dateRanges;
         }
         
-        const course: TKBType = {
-            id: id || name,
-            name,
-            instructor: instructor || 'Chưa xác định',
-            time: [{
-                date: day,
-                class: room || '',
-                lsStart,
-                lsEnd
-            }],
-            weekRange
+        const updatedCourse: TKBType = {
+            ...course,
+            displayTimeInfo: timeInfo
         };
         
-        allCourses.push(course);
+        processedCourses.push(updatedCourse);
     }
     
-    console.log('Parsed UFL courses (normal format):', allCourses);
-    return allCourses;
+    return processedCourses;
 }
 
-function parseNationalDefenseFormat(lines: string[]): TKBType[] {
-    const allCourses: TKBType[] = [];
+function formatDateString(dateString: string): string {
+    // Convert from dd/mm/yyyy to dd/mm/yy
+    const parts = dateString.split('/');
+    if (parts.length === 3) {
+        const day = parts[0];
+        const month = parts[1];
+        const year = parts[2].slice(-2); // Get last 2 digits
+        return `${day}/${month}/${year}`;
+    }
+    return dateString;
+}
+
+function parseThreeTimelineFormat(filteredLines: string[], startIndex: number, name: string, id: string): TKBType[] {
+    const courses: TKBType[] = [];
     
-    // Process 7 lines at a time (each course takes exactly 7 lines)
-    for (let i = 0; i < lines.length; i += 7) {
-        // Make sure we have at least 7 lines for this course
-        if (i + 6 >= lines.length) break;
-        
-        // Get the 7 lines for this course
-        const courseLine = lines[i];     // Course info
-        const dateLine1 = lines[i + 1];  // First date range
-        const dateLine2 = lines[i + 2];  // Second date range + day1
-        const dayLine2 = lines[i + 3];   // Day2 + time1
-        const timeLine2 = lines[i + 4];  // Time2 + room1
-        const roomLine2 = lines[i + 5];  // Room2 + instructor1
-        const instructorLine2 = lines[i + 6]; // Instructor2
-        
-        // Skip if not a course start line
-        if (!/^\d+\t/.test(courseLine)) continue;
-        
-        // Parse course info line
-        const courseParts = courseLine.split('\t');
-        if (courseParts.length < 4) continue;
-        
-        const name = courseParts[1];
-        const id = courseParts[3];
-        
-        // Parse date ranges
-        const dateRange1 = dateLine1.trim();
-        const dateLine2Parts = dateLine2.split('\t');
-        const dateRange2 = dateLine2Parts[0];
-        const day1 = parseInt(dateLine2Parts[1] || '0');
-        
-        // Parse schedule info
-        const dayLine2Parts = dayLine2.split('\t');
-        const day2 = parseInt(dayLine2Parts[0] || '0');
-        const time1 = dayLine2Parts[1] || '';
-        
-        const timeLine2Parts = timeLine2.split('\t');
-        const time2 = timeLine2Parts[0] || '';
-        const room1 = timeLine2Parts[1] || '';
-        
-        const roomLine2Parts = roomLine2.split('\t');
-        const room2 = roomLine2Parts[0] || '';
-        const instructor1 = roomLine2Parts[1] || '';
-        
-        const instructor2 = instructorLine2.trim();
-        
-        // Create courses for each schedule (we take the first occurrence of each)
-        const schedules = [
-            { day: day1, time: time1, room: room1, instructor: instructor1 },
-            { day: day2, time: time2, room: room2, instructor: instructor2 }
-        ].filter(s => s.day >= 2 && s.day <= 7 && s.time.includes('-'));
-        
-        // Take only the first valid schedule to avoid duplicates
-        const schedule = schedules[0];
-        if (!schedule) continue;
-        
-        const timeMatch = schedule.time.match(/^(\d+)-(\d+)$/);
-        if (!timeMatch) continue;
-        
-        const lsStart = parseInt(timeMatch[1]);
-        const lsEnd = parseInt(timeMatch[2]);
-        
-        // Parse date ranges for week calculation
-        const weekRange: TKBType['weekRange'] = [];
-        const allDateRanges = [dateRange1, dateRange2].filter(d => d && d.includes('/'));
-        
-        for (const range of allDateRanges) {
-            const dateMatch = range.trim().match(/(\d{2}\/\d{2}\/\d{4})-\s*(\d{2}\/\d{2}\/\d{4})/);
-            if (dateMatch) {
-                const startDate = new Date(dateMatch[1].split('/').reverse().join('-'));
-                const endDate = new Date(dateMatch[2].split('/').reverse().join('-'));
+    // Structure for 3-timeline format:
+    // Line 0: Course info
+    // Line 1: Date range 1
+    // Line 2: Date range 2  
+    // Line 3: Date range 3 + day 1
+    // Line 4: Day 2
+    // Line 5: Day 3 + time 1
+    // Line 6: Time 2
+    // Line 7: Time 3 + room 1
+    // Line 8: Room 2
+    // Line 9: Room 3 + instructor 1
+    // Line 10: Instructor 2
+    // Line 11: Instructor 3
+    
+    if (startIndex + 11 >= filteredLines.length) return courses;
+    
+    // Parse date ranges
+    const dateRange1 = filteredLines[startIndex + 1].trim();
+    const dateRange2 = filteredLines[startIndex + 2].trim();
+    const dateRange3Parts = filteredLines[startIndex + 3].split('\t');
+    const dateRange3 = dateRange3Parts[0];
+    const day1 = parseInt(dateRange3Parts[1] || '0');
+    
+    // Parse days
+    const day2 = parseInt(filteredLines[startIndex + 4].trim());
+    const dayTimeParts = filteredLines[startIndex + 5].split('\t');
+    const day3 = parseInt(dayTimeParts[0] || '0');
+    const time1 = dayTimeParts[1] || '';
+    
+    // Parse times
+    const time2 = filteredLines[startIndex + 6].trim();
+    const timeRoomParts = filteredLines[startIndex + 7].split('\t');
+    const time3 = timeRoomParts[0] || '';
+    const room1 = timeRoomParts[1] || '';
+    
+    // Parse rooms
+    const room2 = filteredLines[startIndex + 8].trim();
+    const roomInstructorParts = filteredLines[startIndex + 9].split('\t');
+    const room3 = roomInstructorParts[0] || '';
+    const instructor1 = roomInstructorParts[1] || '';
+    
+    // Parse instructors
+    const instructor2 = filteredLines[startIndex + 10].trim();
+    const instructor3 = filteredLines[startIndex + 11].trim();
+    
+    // Create courses for each valid timeline
+    const timelines = [
+        { day: day1, time: time1, room: room1, instructor: instructor1, dateRange: dateRange1 },
+        { day: day2, time: time2, room: room2, instructor: instructor2, dateRange: dateRange2 },
+        { day: day3, time: time3, room: room3, instructor: instructor3, dateRange: dateRange3 }
+    ];
+    
+    for (const timeline of timelines) {
+        if (timeline.day >= 2 && timeline.day <= 7 && timeline.time.includes('-')) {
+            const timeMatch = timeline.time.match(/^(\d+)-(\d+)$/);
+            if (timeMatch) {
+                const lsStart = parseInt(timeMatch[1]);
+                const lsEnd = parseInt(timeMatch[2]);
                 
-                // Calculate week numbers based on semester start (February)
-                const semesterStart = new Date('2025-02-03');
-                const startWeek = Math.floor((startDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
-                const endWeek = Math.floor((endDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
+                // Parse date range for week calculation
+                const weekRange: TKBType['weekRange'] = [];
+                const dateMatch = timeline.dateRange.trim().match(/(\d{2}\/\d{2}\/\d{4})-\s*(\d{2}\/\d{2}\/\d{4})/);
+                if (dateMatch) {
+                    const startDate = new Date(dateMatch[1].split('/').reverse().join('-'));
+                    const endDate = new Date(dateMatch[2].split('/').reverse().join('-'));
+                    
+                    // Calculate week numbers based on semester start
+                    const semesterStart = startDate.getFullYear() === 2024 ? 
+                        new Date('2024-12-01') : new Date('2025-02-03');
+                    const startWeek = Math.floor((startDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
+                    const endWeek = Math.floor((endDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1000)) + 1;
+                    
+                    weekRange.push({
+                        from: Math.max(1, startWeek),
+                        to: Math.max(1, endWeek)
+                    });
+                } else {
+                    weekRange.push({ from: 1, to: 16 });
+                }
                 
-                weekRange.push({
-                    from: Math.max(1, startWeek),
-                    to: Math.max(1, endWeek)
-                });
+                const course: TKBType = {
+                    id: id || name,
+                    name,
+                    instructor: timeline.instructor || 'Chưa xác định',
+                    time: [{
+                        date: timeline.day,
+                        class: timeline.room || '',
+                        lsStart,
+                        lsEnd
+                    }],
+                    weekRange,
+                    originalDateRanges: [timeline.dateRange],
+                    displayTimeInfo: ''
+                };
+                
+                courses.push(course);
             }
         }
-        
-        if (weekRange.length === 0) {
-            weekRange.push({ from: 1, to: 16 });
-        }
-        
-        const course: TKBType = {
-            id: id || name,
-            name,
-            instructor: schedule.instructor || 'Chưa xác định',
-            time: [{
-                date: schedule.day,
-                class: schedule.room || '',
-                lsStart,
-                lsEnd
-            }],
-            weekRange
-        };
-        
-        allCourses.push(course);
     }
     
-    console.log('Parsed UFL courses (national defense format):', allCourses);
-    console.log('Note: Schedule includes National Defense Education break period');
-    return allCourses;
+    return courses;
 }
 
 export default parseUFLFormat;

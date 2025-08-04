@@ -85,7 +85,7 @@ export const UNIVERSITIES: UniversityConfig[] = [
     videoUrl: 'https://youtu.be/wiavNgTzB9o',
     placeholder: 'Dán bảng đã copy từ trang sinh viên DUT vào đây...',
     features: {
-      byWeek: true,
+      byWeek: false, // disbale this cuz no one use it
       showOnlyAvailable: true,
       onlyToday: true,
     },
@@ -148,8 +148,8 @@ export const UNIVERSITIES: UniversityConfig[] = [
       { lessonNumber: 10, start: '16:35', end: '17:25', startTimeHour: 16, startTimeMin: 35, endTimeHour: 17, endTimeMin: 25 },
       { lessonNumber: 11, start: '17:30', end: '18:20', startTimeHour: 17, startTimeMin: 30, endTimeHour: 18, endTimeMin: 20 },
       { lessonNumber: 12, start: '18:20', end: '19:10', startTimeHour: 18, startTimeMin: 20, endTimeHour: 19, endTimeMin: 10 },
-      { lessonNumber: 12, start: '19:20', end: '20:10', startTimeHour: 19, startTimeMin: 20, endTimeHour: 20, endTimeMin: 10 },
-      { lessonNumber: 12, start: '20:10', end: '21:00', startTimeHour: 20, startTimeMin: 10, endTimeHour: 21, endTimeMin: 0 }
+      { lessonNumber: 13, start: '19:20', end: '20:10', startTimeHour: 19, startTimeMin: 20, endTimeHour: 20, endTimeMin: 10 },
+      { lessonNumber: 14, start: '20:10', end: '21:00', startTimeHour: 20, startTimeMin: 10, endTimeHour: 21, endTimeMin: 0 }
     ],
     parserConfig: {
       globalRegex: /^(\d+)\t([^\t]+)\t(\d+)\t([^\t]+)\t([^\t]+)\t(\d+)\t(\d+-\d+)\t([^\t]+)\t(.+)$/,

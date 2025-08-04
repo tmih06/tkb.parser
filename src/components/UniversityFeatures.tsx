@@ -36,6 +36,8 @@ interface UniversityFeaturesProps {
   setShowOnlyAvailable: (value: boolean) => void;
   onlyToday: boolean;
   setOnlyToday: (value: boolean) => void;
+  mergeTimeRanges: boolean;
+  setMergeTimeRanges: (value: boolean) => void;
   // Custom features
   customFeatures: Record<string, boolean>;
   setCustomFeatures: (features: Record<string, boolean>) => void;
@@ -51,6 +53,8 @@ export default function UniversityFeatures({
   setShowOnlyAvailable,
   onlyToday,
   setOnlyToday,
+  mergeTimeRanges,
+  setMergeTimeRanges,
   customFeatures,
   setCustomFeatures
 }: UniversityFeaturesProps) {
@@ -106,6 +110,17 @@ export default function UniversityFeatures({
             onCheckedChange={(e) => setOnlyToday(Boolean(e))}
           />
           Chỉ hiển thị lịch học hôm nay
+        </Flex>
+      )}
+
+      {/* Merge time ranges feature - only for UFL */}
+      {selectedUniversity.id === 'ufl' && (
+        <Flex gap="2" align="center">
+          <Checkbox
+            checked={mergeTimeRanges}
+            onCheckedChange={(e) => setMergeTimeRanges(Boolean(e))}
+          />
+          Gộp mốc thời gian
         </Flex>
       )}
 

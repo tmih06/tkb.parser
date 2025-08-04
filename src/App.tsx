@@ -42,6 +42,7 @@ export default function App() {
     const [byWeek, setByWeek] = useState(localStorage.getItem('byWeek') === 'true' || false);
     const [showOnlyAvailable, setShowOnlyAvailable] = useState(localStorage.getItem('showOnlyAvailable') === 'true' || false);
     const [onlyToday, setOnlyToday] = useState(localStorage.getItem('onlyToday') === 'true' || false);
+    const [mergeTimeRanges, setMergeTimeRanges] = useState(localStorage.getItem('mergeTimeRanges') === 'true' || false);
     const [week, setWeek] = useState(localStorage.getItem('week') ? Number(localStorage.getItem('week')) : 0);
     const [data, setData] = useState(localStorage.getItem('data') || '');
     const [customFeatures, setCustomFeatures] = useState<Record<string, boolean>>(() => {
@@ -95,6 +96,96 @@ export default function App() {
         localStorage.setItem('onlyToday', onlyToday.toString());
     }, [onlyToday]);
 
+    useEffect(() => {
+        localStorage.setItem('mergeTimeRanges', mergeTimeRanges.toString());
+    }, [mergeTimeRanges]);
+
+    // Function to merge courses with same name and overlapping time slots
+    const mergeSimilarCourses = (courses: TKBType[]): TKBType[] => {
+        const merged: TKBType[] = [];
+        const processed = new Set<string>();
+
+        for (const course of courses) {
+            const courseKey = `${course.name}_${course.instructor}_${course.time.map(t => `${t.date}_${t.lsStart}_${t.lsEnd}`).join('|')}`;
+            
+            if (processed.has(courseKey)) continue;
+            
+            // Find all courses with same name, instructor, and time slots
+            const similarCourses = courses.filter(c => 
+                c.name === course.name && 
+                c.instructor === course.instructor &&
+                c.time.length === course.time.length &&
+                c.time.every((t, i) => 
+                    course.time[i] && 
+                    t.date === course.time[i].date && 
+                    t.lsStart === course.time[i].lsStart && 
+                    t.lsEnd === course.time[i].lsEnd
+                )
+            );
+
+            if (similarCourses.length > 1) {
+                // Merge date ranges
+                const allOriginalRanges = similarCourses.flatMap(c => c.originalDateRanges || []);
+                const allWeekRanges = similarCourses.flatMap(c => c.weekRange);
+                
+                // Create merged time info
+                let mergedTimeInfo = '';
+                if (allOriginalRanges.length > 0) {
+                    // Sort ranges by start date to find overall range
+                    const sortedRanges = allOriginalRanges
+                        .map(range => {
+                            const match = range.trim().match(/(\d{2}\/\d{2}\/\d{4})-\s*(\d{2}\/\d{2}\/\d{4})/);
+                            if (match) {
+                                return {
+                                    original: range,
+                                    startDate: new Date(match[1].split('/').reverse().join('-')),
+                                    endDate: new Date(match[2].split('/').reverse().join('-')),
+                                    startStr: match[1],
+                                    endStr: match[2]
+                                };
+                            }
+                            return null;
+                        })
+                        .filter(Boolean)
+                        .sort((a, b) => a!.startDate.getTime() - b!.startDate.getTime());
+
+                    if (sortedRanges.length > 0) {
+                        const firstRange = sortedRanges[0]!;
+                        const lastRange = sortedRanges[sortedRanges.length - 1]!;
+                        
+                        // Format dates from dd/mm/yyyy to dd/mm/yy
+                        const formatDate = (dateStr: string) => {
+                            const parts = dateStr.split('/');
+                            return `${parts[0]}/${parts[1]}/${parts[2].slice(-2)}`;
+                        };
+                        
+                        mergedTimeInfo = `${formatDate(firstRange.startStr)} - ${formatDate(lastRange.endStr)}`;
+                    }
+                }
+
+                const mergedCourse: TKBType = {
+                    ...course,
+                    originalDateRanges: allOriginalRanges,
+                    weekRange: allWeekRanges,
+                    displayTimeInfo: mergedTimeInfo
+                };
+
+                merged.push(mergedCourse);
+                
+                // Mark all similar courses as processed
+                similarCourses.forEach(c => {
+                    const key = `${c.name}_${c.instructor}_${c.time.map(t => `${t.date}_${t.lsStart}_${t.lsEnd}`).join('|')}`;
+                    processed.add(key);
+                });
+            } else {
+                merged.push(course);
+                processed.add(courseKey);
+            }
+        }
+
+        return merged;
+    };
+
     const scheduleData = useMemo<TKBType[]>(() => {
         const d: TKBType[] = [];
         
@@ -116,8 +207,13 @@ export default function App() {
             });
         }
 
+        // Merge courses with same name and time slots if enabled
+        if (mergeTimeRanges) {
+            return mergeSimilarCourses(d);
+        }
+
         return d;
-    }, [data, selectedUniversity]);
+    }, [data, selectedUniversity, mergeTimeRanges]);
 
     const dt = useMemo(() => {
         const universityTimeRange = getUniversityTimeRange(selectedUniversity);
@@ -142,6 +238,9 @@ export default function App() {
                                     key={d.id + day + ind}>
                                     <Box style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                                         <Text>{d.name}</Text>
+                                        {d.displayTimeInfo && (
+                                            <Text size="1" style={{ fontSize: '12px', color: 'gray' }} color="gray">{d.displayTimeInfo}</Text>
+                                        )}
                                         <Text size="1" style={{ fontSize: '10px', color: 'grey' }} color="gray">{d.instructor}</Text>
                                         <Text size="1" style={{ fontSize: '12px', color: 'gray' }} color="gray">{d.time.filter(t => t.date === day && t.lsStart <= time.lessonNumber && t.lsEnd >= time.lessonNumber).map(t => t.class).join(', ')}</Text>
                                     </Box>
@@ -180,6 +279,8 @@ export default function App() {
                             setShowOnlyAvailable={setShowOnlyAvailable}
                             onlyToday={onlyToday}
                             setOnlyToday={setOnlyToday}
+                            mergeTimeRanges={mergeTimeRanges}
+                            setMergeTimeRanges={setMergeTimeRanges}
                             customFeatures={customFeatures}
                             setCustomFeatures={setCustomFeatures}
                         />

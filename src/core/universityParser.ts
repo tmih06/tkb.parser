@@ -38,7 +38,9 @@ export interface TKBType {
     weekRange: {
         from: number;
         to: number;
-    }[]
+    }[];
+    originalDateRanges?: string[]; // Store original date ranges from input
+    displayTimeInfo?: string; // Time info to display on separate line
 }
 
 export function createUniversityParser(university: UniversityConfig) {

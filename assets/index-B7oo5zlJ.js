@@ -23934,62 +23934,148 @@ function parseUFLFormat(input) {
   const lines = input.trim().split("\n").map((line) => line.trim()).filter((line) => line.length > 0);
   if (lines.length < 2) return [];
   try {
-    const allCourses = [];
-    for (let i = 0; i < lines.length - 1; i += 2) {
-      const line1 = lines[i];
-      const line2 = lines[i + 1];
-      if (!line1.includes("	") || !line2.includes("	")) continue;
-      const parts1 = line1.split("	");
-      if (parts1.length < 4) continue;
-      const name = parts1[1];
-      const id = parts1[3];
-      const parts2 = line2.split("	");
-      if (parts2.length < 5) continue;
-      const dateRange = parts2[0];
-      const dayStr = parts2[1];
-      const timeSlot = parts2[2];
-      const room = parts2[3];
-      const instructor = parts2[4] || "";
-      const day = parseInt(dayStr);
-      if (day < 2 || day > 7) continue;
-      const timeMatch = timeSlot.match(/^(\d+)-(\d+)$/);
-      if (!timeMatch) continue;
-      const lsStart = parseInt(timeMatch[1]);
-      const lsEnd = parseInt(timeMatch[2]);
-      const weekRange = [];
-      const dateMatch = dateRange.match(/(\d{2}\/\d{2}\/\d{4})-\s*(\d{2}\/\d{2}\/\d{4})/);
-      if (dateMatch) {
-        const startDate = new Date(dateMatch[1].split("/").reverse().join("-"));
-        const endDate = new Date(dateMatch[2].split("/").reverse().join("-"));
-        const startWeek = Math.ceil(startDate.getTime() / (7 * 24 * 60 * 60 * 1e3)) % 52;
-        const endWeek = Math.ceil(endDate.getTime() / (7 * 24 * 60 * 60 * 1e3)) % 52;
-        weekRange.push({
-          from: Math.max(1, startWeek),
-          to: Math.max(1, endWeek)
-        });
-      } else {
-        weekRange.push({ from: 1, to: 16 });
-      }
-      const course = {
-        id: id || name,
-        name,
-        instructor: instructor || "Chưa xác định",
-        time: [{
-          date: day,
-          class: room || "",
-          lsStart,
-          lsEnd
-        }],
-        weekRange
-      };
-      allCourses.push(course);
+    const hasNationalDefense = input.toLowerCase().includes("giáo dục quốc phòng");
+    if (hasNationalDefense) {
+      return parseNationalDefenseFormat(lines);
+    } else {
+      return parseNormalFormat(lines);
     }
-    console.log("Parsed UFL courses:", allCourses);
-    return allCourses;
   } catch (error) {
     console.error("Error parsing UFL format:", error);
     return [];
   }
+}
+function parseNormalFormat(lines) {
+  const allCourses = [];
+  for (let i = 0; i < lines.length - 1; i += 2) {
+    const line1 = lines[i];
+    const line2 = lines[i + 1];
+    if (!line1.includes("	") || !line2.includes("	")) continue;
+    const parts1 = line1.split("	");
+    if (parts1.length < 4) continue;
+    const name = parts1[1];
+    const id = parts1[3];
+    const parts2 = line2.split("	");
+    if (parts2.length < 5) continue;
+    const dateRange = parts2[0];
+    const dayStr = parts2[1];
+    const timeSlot = parts2[2];
+    const room = parts2[3];
+    const instructor = parts2[4] || "";
+    const day = parseInt(dayStr);
+    if (day < 2 || day > 7) continue;
+    const timeMatch = timeSlot.match(/^(\d+)-(\d+)$/);
+    if (!timeMatch) continue;
+    const lsStart = parseInt(timeMatch[1]);
+    const lsEnd = parseInt(timeMatch[2]);
+    const weekRange = [];
+    const dateMatch = dateRange.match(/(\d{2}\/\d{2}\/\d{4})-\s*(\d{2}\/\d{2}\/\d{4})/);
+    if (dateMatch) {
+      const startDate = new Date(dateMatch[1].split("/").reverse().join("-"));
+      const endDate = new Date(dateMatch[2].split("/").reverse().join("-"));
+      const semesterStart = new Date(startDate.getFullYear(), 8, 1);
+      const startWeek = Math.floor((startDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1e3)) + 1;
+      const endWeek = Math.floor((endDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1e3)) + 1;
+      weekRange.push({
+        from: Math.max(1, startWeek),
+        to: Math.max(1, endWeek)
+      });
+    } else {
+      weekRange.push({ from: 1, to: 16 });
+    }
+    const course = {
+      id: id || name,
+      name,
+      instructor: instructor || "Chưa xác định",
+      time: [{
+        date: day,
+        class: room || "",
+        lsStart,
+        lsEnd
+      }],
+      weekRange
+    };
+    allCourses.push(course);
+  }
+  console.log("Parsed UFL courses (normal format):", allCourses);
+  return allCourses;
+}
+function parseNationalDefenseFormat(lines) {
+  const allCourses = [];
+  for (let i = 0; i < lines.length; i += 7) {
+    if (i + 6 >= lines.length) break;
+    const courseLine = lines[i];
+    const dateLine1 = lines[i + 1];
+    const dateLine2 = lines[i + 2];
+    const dayLine2 = lines[i + 3];
+    const timeLine2 = lines[i + 4];
+    const roomLine2 = lines[i + 5];
+    const instructorLine2 = lines[i + 6];
+    if (!/^\d+\t/.test(courseLine)) continue;
+    const courseParts = courseLine.split("	");
+    if (courseParts.length < 4) continue;
+    const name = courseParts[1];
+    const id = courseParts[3];
+    const dateRange1 = dateLine1.trim();
+    const dateLine2Parts = dateLine2.split("	");
+    const dateRange2 = dateLine2Parts[0];
+    const day1 = parseInt(dateLine2Parts[1] || "0");
+    const dayLine2Parts = dayLine2.split("	");
+    const day2 = parseInt(dayLine2Parts[0] || "0");
+    const time1 = dayLine2Parts[1] || "";
+    const timeLine2Parts = timeLine2.split("	");
+    const time2 = timeLine2Parts[0] || "";
+    const room1 = timeLine2Parts[1] || "";
+    const roomLine2Parts = roomLine2.split("	");
+    const room2 = roomLine2Parts[0] || "";
+    const instructor1 = roomLine2Parts[1] || "";
+    const instructor2 = instructorLine2.trim();
+    const schedules = [
+      { day: day1, time: time1, room: room1, instructor: instructor1 },
+      { day: day2, time: time2, room: room2, instructor: instructor2 }
+    ].filter((s2) => s2.day >= 2 && s2.day <= 7 && s2.time.includes("-"));
+    const schedule = schedules[0];
+    if (!schedule) continue;
+    const timeMatch = schedule.time.match(/^(\d+)-(\d+)$/);
+    if (!timeMatch) continue;
+    const lsStart = parseInt(timeMatch[1]);
+    const lsEnd = parseInt(timeMatch[2]);
+    const weekRange = [];
+    const allDateRanges = [dateRange1, dateRange2].filter((d2) => d2 && d2.includes("/"));
+    for (const range of allDateRanges) {
+      const dateMatch = range.trim().match(/(\d{2}\/\d{2}\/\d{4})-\s*(\d{2}\/\d{2}\/\d{4})/);
+      if (dateMatch) {
+        const startDate = new Date(dateMatch[1].split("/").reverse().join("-"));
+        const endDate = new Date(dateMatch[2].split("/").reverse().join("-"));
+        const semesterStart = /* @__PURE__ */ new Date("2025-02-03");
+        const startWeek = Math.floor((startDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1e3)) + 1;
+        const endWeek = Math.floor((endDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1e3)) + 1;
+        weekRange.push({
+          from: Math.max(1, startWeek),
+          to: Math.max(1, endWeek)
+        });
+      }
+    }
+    if (weekRange.length === 0) {
+      weekRange.push({ from: 1, to: 16 });
+    }
+    const course = {
+      id: id || name,
+      name,
+      instructor: schedule.instructor || "Chưa xác định",
+      time: [{
+        date: schedule.day,
+        class: schedule.room || "",
+        lsStart,
+        lsEnd
+      }],
+      weekRange
+    };
+    allCourses.push(course);
+  }
+  console.log("Parsed UFL courses (national defense format):", allCourses);
+  console.log("Note: Schedule includes National Defense Education break period");
+  return allCourses;
 }
 function createUniversityParser(university) {
   return function parseSchedule(s2) {

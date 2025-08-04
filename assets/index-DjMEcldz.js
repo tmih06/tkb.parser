@@ -23977,12 +23977,15 @@ function parseUFLFormat(input) {
         }
         i += 11;
       } else if (dateLineCount >= 2 || nextLine.includes("/") && !nextLine.includes("	") || nextLine.split("	").length < 3) {
+        if (i + 5 >= filteredLines.length) {
+          continue;
+        }
         const dateLine1 = filteredLines[i + 1];
         const dateLine2 = filteredLines[i + 2];
-        const dayLine2 = filteredLines[i + 3];
-        const timeLine2 = filteredLines[i + 4];
-        const roomLine2 = filteredLines[i + 5];
-        const instructorLine2 = filteredLines[i + 6];
+        const dayLine2 = filteredLines[i + 3] || "";
+        const timeLine2 = filteredLines[i + 4] || "";
+        const roomLine2 = filteredLines[i + 5] || "";
+        const instructorLine2 = filteredLines[i + 6] || "";
         const dateRange1 = dateLine1.trim();
         const dateLine2Parts = dateLine2.split("	");
         const dateRange2 = dateLine2Parts[0];
@@ -23992,14 +23995,20 @@ function parseUFLFormat(input) {
         const time1 = dayLine2Parts[1] || "";
         const timeLine2Parts = timeLine2.split("	");
         const time2 = timeLine2Parts[0] || "";
-        const room1 = timeLine2Parts[1] || "";
+        const room1 = timeLine2Parts[1] || "-";
         const roomLine2Parts = roomLine2.split("	");
-        const room2 = roomLine2Parts[0] || "";
+        const room2 = roomLine2Parts[0] || "-";
         const instructor1 = roomLine2Parts[1] || "";
-        const instructor2 = instructorLine2.trim();
+        const instructor2 = instructorLine2 ? instructorLine2.trim() : "";
+        let finalInstructor1 = instructor1;
+        let finalInstructor2 = instructor2;
+        if (!instructor1 && !instructor2 && roomLine2) {
+          finalInstructor1 = roomLine2.trim();
+          finalInstructor2 = roomLine2.trim();
+        }
         const schedules = [
-          { day: day1, time: time1, room: room1, instructor: instructor1 },
-          { day: day2, time: time2, room: room2, instructor: instructor2 }
+          { day: day1, time: time1, room: room1, instructor: finalInstructor1 },
+          { day: day2, time: time2, room: room2, instructor: finalInstructor2 }
         ].filter((s2) => s2.day >= 2 && s2.day <= 7 && s2.time.includes("-"));
         const schedule = schedules[0];
         if (schedule) {
@@ -24023,10 +24032,10 @@ function parseUFLFormat(input) {
                 const course = {
                   id: id || name,
                   name,
-                  instructor: schedule.instructor || "Chưa xác định",
+                  instructor: schedule.instructor || "-",
                   time: [{
                     date: schedule.day,
-                    class: schedule.room || "",
+                    class: schedule.room === "-" ? "-" : schedule.room || "-",
                     lsStart,
                     lsEnd
                   }],
@@ -24041,10 +24050,10 @@ function parseUFLFormat(input) {
               const course = {
                 id: id || name,
                 name,
-                instructor: schedule.instructor || "Chưa xác định",
+                instructor: schedule.instructor || "-",
                 time: [{
                   date: schedule.day,
-                  class: schedule.room || "",
+                  class: schedule.room === "-" ? "-" : schedule.room || "-",
                   lsStart,
                   lsEnd
                 }],
@@ -24056,7 +24065,8 @@ function parseUFLFormat(input) {
             }
           }
         }
-        i += 6;
+        const skipLines = 5;
+        i += skipLines;
       } else if (i + 1 < filteredLines.length) {
         const scheduleLine = filteredLines[i + 1];
         const scheduleParts = scheduleLine.split("	");
@@ -24090,10 +24100,10 @@ function parseUFLFormat(input) {
               const course = {
                 id: id || name,
                 name,
-                instructor: instructor || "Chưa xác định",
+                instructor: instructor || "-",
                 time: [{
                   date: day,
-                  class: room || "",
+                  class: room || "-",
                   lsStart,
                   lsEnd
                 }],
@@ -24109,8 +24119,6 @@ function parseUFLFormat(input) {
       }
     }
     const coursesWithTimeInfo = addTimeInfoToCourses(allCourses);
-    console.log("Parsed UFL courses (national defense format):", coursesWithTimeInfo);
-    console.log("Note: Schedule includes National Defense Education break period");
     return coursesWithTimeInfo;
   } catch (error) {
     console.error("Error parsing UFL format:", error);
@@ -24202,10 +24210,10 @@ function parseThreeTimelineFormat(filteredLines, startIndex, name, id) {
         const course = {
           id: id || name,
           name,
-          instructor: timeline.instructor || "Chưa xác định",
+          instructor: timeline.instructor || "-",
           time: [{
             date: timeline.day,
-            class: timeline.room || "",
+            class: timeline.room || "-",
             lsStart,
             lsEnd
           }],

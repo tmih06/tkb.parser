@@ -42,7 +42,7 @@ export default function App() {
     const [byWeek, setByWeek] = useState(localStorage.getItem('byWeek') === 'true' || false);
     const [showOnlyAvailable, setShowOnlyAvailable] = useState(localStorage.getItem('showOnlyAvailable') === 'true' || false);
     const [onlyToday, setOnlyToday] = useState(localStorage.getItem('onlyToday') === 'true' || false);
-    const [mergeTimeRanges, setMergeTimeRanges] = useState(localStorage.getItem('mergeTimeRanges') === 'true' || false);
+    const [mergeTimeRanges, setMergeTimeRanges] = useState(localStorage.getItem('mergeTimeRanges') !== 'false'); // Default to true
     const [week, setWeek] = useState(localStorage.getItem('week') ? Number(localStorage.getItem('week')) : 0);
     const [data, setData] = useState(localStorage.getItem('data') || '');
     const [customFeatures, setCustomFeatures] = useState<Record<string, boolean>>(() => {

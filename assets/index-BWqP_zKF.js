@@ -32964,7 +32964,7 @@ function App() {
         {
           className: tbCls.card,
           children: /* @__PURE__ */ jsxRuntimeExports.jsxs(p$p, { style: { display: "flex", flexDirection: "column", gap: "1px" }, children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { children: d2.name }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { weight: "bold", children: d2.name }),
             d2.displayTimeInfo && /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { size: "1", style: { fontSize: "12px", color: "gray" }, color: "gray", children: d2.displayTimeInfo }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { size: "1", style: { fontSize: "10px", color: "grey" }, color: "gray", children: d2.instructor }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { size: "1", style: { fontSize: "12px", color: "gray" }, color: "gray", children: d2.time.filter((t2) => t2.date === day && t2.lsStart <= time2.lessonNumber && t2.lsEnd >= time2.lessonNumber).map((t2) => t2.class).join(", ") })
@@ -33124,4 +33124,4 @@ const ThemeMatcher = ({ children }) => {
 clientExports.createRoot(document.getElementById("root")).render(
   /* @__PURE__ */ jsxRuntimeExports.jsx(reactExports.StrictMode, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(ThemeMatcher, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(App, {}) }) })
 );
-//# sourceMappingURL=index-CQHUdRP2.js.map
+//# sourceMappingURL=index-BWqP_zKF.js.map

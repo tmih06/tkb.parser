@@ -23944,14 +23944,19 @@ function UniversityFeatures({
   ] });
 }
 function parseUFLFormat(input) {
-  const lines = input.trim().split("\n").map((line) => line.trim()).filter((line) => line.length > 0);
-  if (lines.length < 2) return [];
-  const filteredLines = lines.filter((line) => {
-    if (line === "LMS3") return false;
-    if (line.startsWith("http")) return false;
-    return true;
-  });
   try {
+    console.log("Starting UFL parsing with input length:", input.length);
+    const lines = input.trim().split("\n").map((line) => line.trim()).filter((line) => line.length > 0);
+    if (lines.length < 2) {
+      console.log("Not enough lines to parse");
+      return [];
+    }
+    const filteredLines = lines.filter((line) => {
+      if (line === "LMS3") return false;
+      if (line.startsWith("http")) return false;
+      return true;
+    });
+    console.log("Filtered lines count:", filteredLines.length);
     const allCourses = [];
     for (let i = 0; i < filteredLines.length; i++) {
       const courseLine = filteredLines[i];
@@ -33069,6 +33074,7 @@ function App() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(Footer, {})
   ] });
 }
+console.log("TKB Parser starting...", (/* @__PURE__ */ new Date()).toISOString());
 const ThemeContext = reactExports.createContext(null);
 const useTheme = () => {
   const context = reactExports.useContext(ThemeContext);
@@ -33118,3 +33124,4 @@ const ThemeMatcher = ({ children }) => {
 clientExports.createRoot(document.getElementById("root")).render(
   /* @__PURE__ */ jsxRuntimeExports.jsx(reactExports.StrictMode, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(ThemeMatcher, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(App, {}) }) })
 );
+//# sourceMappingURL=index-CQHUdRP2.js.map

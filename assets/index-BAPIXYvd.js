@@ -23677,7 +23677,8 @@ const UNIVERSITIES = [
     videoUrl: "https://youtu.be/wiavNgTzB9o",
     placeholder: "Dán bảng đã copy từ trang sinh viên DUT vào đây...",
     features: {
-      byWeek: true,
+      byWeek: false,
+      // disbale this cuz no one use it
       showOnlyAvailable: true,
       onlyToday: true
     },
@@ -23741,8 +23742,8 @@ const UNIVERSITIES = [
       { lessonNumber: 10, start: "16:35", end: "17:25", startTimeHour: 16, startTimeMin: 35, endTimeHour: 17, endTimeMin: 25 },
       { lessonNumber: 11, start: "17:30", end: "18:20", startTimeHour: 17, startTimeMin: 30, endTimeHour: 18, endTimeMin: 20 },
       { lessonNumber: 12, start: "18:20", end: "19:10", startTimeHour: 18, startTimeMin: 20, endTimeHour: 19, endTimeMin: 10 },
-      { lessonNumber: 12, start: "19:20", end: "20:10", startTimeHour: 19, startTimeMin: 20, endTimeHour: 20, endTimeMin: 10 },
-      { lessonNumber: 12, start: "20:10", end: "21:00", startTimeHour: 20, startTimeMin: 10, endTimeHour: 21, endTimeMin: 0 }
+      { lessonNumber: 13, start: "19:20", end: "20:10", startTimeHour: 19, startTimeMin: 20, endTimeHour: 20, endTimeMin: 10 },
+      { lessonNumber: 14, start: "20:10", end: "21:00", startTimeHour: 20, startTimeMin: 10, endTimeHour: 21, endTimeMin: 0 }
     ],
     parserConfig: {
       globalRegex: /^(\d+)\t([^\t]+)\t(\d+)\t([^\t]+)\t([^\t]+)\t(\d+)\t(\d+-\d+)\t([^\t]+)\t(.+)$/,
@@ -23858,6 +23859,8 @@ function UniversityFeatures({
   setShowOnlyAvailable,
   onlyToday,
   setOnlyToday,
+  mergeTimeRanges,
+  setMergeTimeRanges,
   customFeatures,
   setCustomFeatures
 }) {
@@ -23918,6 +23921,16 @@ function UniversityFeatures({
       ),
       "Chỉ hiển thị lịch học hôm nay"
     ] }),
+    selectedUniversity.id === "ufl" && /* @__PURE__ */ jsxRuntimeExports.jsxs(p$m, { gap: "2", align: "center", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        c$3,
+        {
+          checked: mergeTimeRanges,
+          onCheckedChange: (e2) => setMergeTimeRanges(Boolean(e2))
+        }
+      ),
+      "Gộp mốc thời gian"
+    ] }),
     (_a2 = features.customFeatures) == null ? void 0 : _a2.map((feature) => /* @__PURE__ */ jsxRuntimeExports.jsxs(p$m, { gap: "2", align: "center", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         c$3,
@@ -23933,149 +23946,278 @@ function UniversityFeatures({
 function parseUFLFormat(input) {
   const lines = input.trim().split("\n").map((line) => line.trim()).filter((line) => line.length > 0);
   if (lines.length < 2) return [];
+  const filteredLines = lines.filter((line) => {
+    if (line === "LMS3") return false;
+    if (line.startsWith("http")) return false;
+    return true;
+  });
   try {
-    const hasNationalDefense = input.toLowerCase().includes("giáo dục quốc phòng");
-    if (hasNationalDefense) {
-      return parseNationalDefenseFormat(lines);
-    } else {
-      return parseNormalFormat(lines);
+    const allCourses = [];
+    for (let i = 0; i < filteredLines.length; i++) {
+      const courseLine = filteredLines[i];
+      if (!/^\d+\t/.test(courseLine)) continue;
+      const courseParts = courseLine.split("	");
+      if (courseParts.length < 4) continue;
+      const name = courseParts[1];
+      const id = courseParts[3];
+      if (i + 1 >= filteredLines.length) continue;
+      const nextLine = filteredLines[i + 1];
+      let dateLineCount = 0;
+      for (let j = i + 1; j < filteredLines.length && j < i + 5; j++) {
+        if (filteredLines[j].includes("/") && filteredLines[j].includes("-")) {
+          dateLineCount++;
+        } else {
+          break;
+        }
+      }
+      if (dateLineCount >= 3) {
+        const course = parseThreeTimelineFormat(filteredLines, i, name, id);
+        if (course.length > 0) {
+          allCourses.push(...course);
+        }
+        i += 11;
+      } else if (dateLineCount >= 2 || nextLine.includes("/") && !nextLine.includes("	") || nextLine.split("	").length < 3) {
+        const dateLine1 = filteredLines[i + 1];
+        const dateLine2 = filteredLines[i + 2];
+        const dayLine2 = filteredLines[i + 3];
+        const timeLine2 = filteredLines[i + 4];
+        const roomLine2 = filteredLines[i + 5];
+        const instructorLine2 = filteredLines[i + 6];
+        const dateRange1 = dateLine1.trim();
+        const dateLine2Parts = dateLine2.split("	");
+        const dateRange2 = dateLine2Parts[0];
+        const day1 = parseInt(dateLine2Parts[1] || "0");
+        const dayLine2Parts = dayLine2.split("	");
+        const day2 = parseInt(dayLine2Parts[0] || "0");
+        const time1 = dayLine2Parts[1] || "";
+        const timeLine2Parts = timeLine2.split("	");
+        const time2 = timeLine2Parts[0] || "";
+        const room1 = timeLine2Parts[1] || "";
+        const roomLine2Parts = roomLine2.split("	");
+        const room2 = roomLine2Parts[0] || "";
+        const instructor1 = roomLine2Parts[1] || "";
+        const instructor2 = instructorLine2.trim();
+        const schedules = [
+          { day: day1, time: time1, room: room1, instructor: instructor1 },
+          { day: day2, time: time2, room: room2, instructor: instructor2 }
+        ].filter((s2) => s2.day >= 2 && s2.day <= 7 && s2.time.includes("-"));
+        const schedule = schedules[0];
+        if (schedule) {
+          const timeMatch = schedule.time.match(/^(\d+)-(\d+)$/);
+          if (timeMatch) {
+            const lsStart = parseInt(timeMatch[1]);
+            const lsEnd = parseInt(timeMatch[2]);
+            const allDateRanges = [dateRange1, dateRange2].filter((d2) => d2 && d2.includes("/"));
+            for (const range of allDateRanges) {
+              const dateMatch = range.trim().match(/(\d{2}\/\d{2}\/\d{4})-\s*(\d{2}\/\d{2}\/\d{4})/);
+              if (dateMatch) {
+                const startDate = new Date(dateMatch[1].split("/").reverse().join("-"));
+                const endDate = new Date(dateMatch[2].split("/").reverse().join("-"));
+                const semesterStart = /* @__PURE__ */ new Date("2025-02-03");
+                const startWeek = Math.floor((startDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1e3)) + 1;
+                const endWeek = Math.floor((endDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1e3)) + 1;
+                const singleWeekRange = [{
+                  from: Math.max(1, startWeek),
+                  to: Math.max(1, endWeek)
+                }];
+                const course = {
+                  id: id || name,
+                  name,
+                  instructor: schedule.instructor || "Chưa xác định",
+                  time: [{
+                    date: schedule.day,
+                    class: schedule.room || "",
+                    lsStart,
+                    lsEnd
+                  }],
+                  weekRange: singleWeekRange,
+                  originalDateRanges: [range.trim()],
+                  displayTimeInfo: ""
+                };
+                allCourses.push(course);
+              }
+            }
+            if (allDateRanges.length === 0) {
+              const course = {
+                id: id || name,
+                name,
+                instructor: schedule.instructor || "Chưa xác định",
+                time: [{
+                  date: schedule.day,
+                  class: schedule.room || "",
+                  lsStart,
+                  lsEnd
+                }],
+                weekRange: [{ from: 1, to: 16 }],
+                originalDateRanges: [],
+                displayTimeInfo: ""
+              };
+              allCourses.push(course);
+            }
+          }
+        }
+        i += 6;
+      } else if (i + 1 < filteredLines.length) {
+        const scheduleLine = filteredLines[i + 1];
+        const scheduleParts = scheduleLine.split("	");
+        if (scheduleParts.length >= 5) {
+          const dateRange = scheduleParts[0];
+          const dayStr = scheduleParts[1];
+          const timeSlot = scheduleParts[2];
+          const room = scheduleParts[3];
+          const instructor = scheduleParts[4] || "";
+          const day = parseInt(dayStr);
+          if (day >= 2 && day <= 7) {
+            const timeMatch = timeSlot.match(/^(\d+)-(\d+)$/);
+            if (timeMatch) {
+              const lsStart = parseInt(timeMatch[1]);
+              const lsEnd = parseInt(timeMatch[2]);
+              const weekRange = [];
+              const dateMatch = dateRange.match(/(\d{2}\/\d{2}\/\d{4})-\s*(\d{2}\/\d{2}\/\d{4})/);
+              if (dateMatch) {
+                const startDate = new Date(dateMatch[1].split("/").reverse().join("-"));
+                const endDate = new Date(dateMatch[2].split("/").reverse().join("-"));
+                const semesterStart = startDate.getFullYear() === 2024 ? /* @__PURE__ */ new Date("2024-09-01") : /* @__PURE__ */ new Date("2025-02-03");
+                const startWeek = Math.floor((startDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1e3)) + 1;
+                const endWeek = Math.floor((endDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1e3)) + 1;
+                weekRange.push({
+                  from: Math.max(1, startWeek),
+                  to: Math.max(1, endWeek)
+                });
+              } else {
+                weekRange.push({ from: 1, to: 16 });
+              }
+              const course = {
+                id: id || name,
+                name,
+                instructor: instructor || "Chưa xác định",
+                time: [{
+                  date: day,
+                  class: room || "",
+                  lsStart,
+                  lsEnd
+                }],
+                weekRange,
+                originalDateRanges: [dateRange],
+                displayTimeInfo: ""
+              };
+              allCourses.push(course);
+            }
+          }
+        }
+        i += 1;
+      }
     }
+    const coursesWithTimeInfo = addTimeInfoToCourses(allCourses);
+    console.log("Parsed UFL courses (national defense format):", coursesWithTimeInfo);
+    console.log("Note: Schedule includes National Defense Education break period");
+    return coursesWithTimeInfo;
   } catch (error) {
     console.error("Error parsing UFL format:", error);
     return [];
   }
 }
-function parseNormalFormat(lines) {
-  const allCourses = [];
-  for (let i = 0; i < lines.length - 1; i += 2) {
-    const line1 = lines[i];
-    const line2 = lines[i + 1];
-    if (!line1.includes("	") || !line2.includes("	")) continue;
-    const parts1 = line1.split("	");
-    if (parts1.length < 4) continue;
-    const name = parts1[1];
-    const id = parts1[3];
-    const parts2 = line2.split("	");
-    if (parts2.length < 5) continue;
-    const dateRange = parts2[0];
-    const dayStr = parts2[1];
-    const timeSlot = parts2[2];
-    const room = parts2[3];
-    const instructor = parts2[4] || "";
-    const day = parseInt(dayStr);
-    if (day < 2 || day > 7) continue;
-    const timeMatch = timeSlot.match(/^(\d+)-(\d+)$/);
-    if (!timeMatch) continue;
-    const lsStart = parseInt(timeMatch[1]);
-    const lsEnd = parseInt(timeMatch[2]);
-    const weekRange = [];
-    const dateMatch = dateRange.match(/(\d{2}\/\d{2}\/\d{4})-\s*(\d{2}\/\d{2}\/\d{4})/);
-    if (dateMatch) {
-      const startDate = new Date(dateMatch[1].split("/").reverse().join("-"));
-      const endDate = new Date(dateMatch[2].split("/").reverse().join("-"));
-      const semesterStart = new Date(startDate.getFullYear(), 8, 1);
-      const startWeek = Math.floor((startDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1e3)) + 1;
-      const endWeek = Math.floor((endDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1e3)) + 1;
-      weekRange.push({
-        from: Math.max(1, startWeek),
-        to: Math.max(1, endWeek)
-      });
-    } else {
-      weekRange.push({ from: 1, to: 16 });
+function addTimeInfoToCourses(courses) {
+  const processedCourses = [];
+  for (const course of courses) {
+    let timeInfo = "";
+    if (course.originalDateRanges && course.originalDateRanges.length > 0) {
+      const dateRanges = course.originalDateRanges.map((dateRange) => {
+        const dateMatch = dateRange.trim().match(/(\d{2}\/\d{2}\/\d{4})-\s*(\d{2}\/\d{2}\/\d{4})/);
+        if (dateMatch) {
+          const startDate = dateMatch[1];
+          const endDate = dateMatch[2];
+          return `${formatDateString(startDate)} - ${formatDateString(endDate)}`;
+        }
+        return dateRange;
+      }).join(", ");
+      timeInfo = dateRanges;
     }
-    const course = {
-      id: id || name,
-      name,
-      instructor: instructor || "Chưa xác định",
-      time: [{
-        date: day,
-        class: room || "",
-        lsStart,
-        lsEnd
-      }],
-      weekRange
+    const updatedCourse = {
+      ...course,
+      displayTimeInfo: timeInfo
     };
-    allCourses.push(course);
+    processedCourses.push(updatedCourse);
   }
-  console.log("Parsed UFL courses (normal format):", allCourses);
-  return allCourses;
+  return processedCourses;
 }
-function parseNationalDefenseFormat(lines) {
-  const allCourses = [];
-  for (let i = 0; i < lines.length; i += 7) {
-    if (i + 6 >= lines.length) break;
-    const courseLine = lines[i];
-    const dateLine1 = lines[i + 1];
-    const dateLine2 = lines[i + 2];
-    const dayLine2 = lines[i + 3];
-    const timeLine2 = lines[i + 4];
-    const roomLine2 = lines[i + 5];
-    const instructorLine2 = lines[i + 6];
-    if (!/^\d+\t/.test(courseLine)) continue;
-    const courseParts = courseLine.split("	");
-    if (courseParts.length < 4) continue;
-    const name = courseParts[1];
-    const id = courseParts[3];
-    const dateRange1 = dateLine1.trim();
-    const dateLine2Parts = dateLine2.split("	");
-    const dateRange2 = dateLine2Parts[0];
-    const day1 = parseInt(dateLine2Parts[1] || "0");
-    const dayLine2Parts = dayLine2.split("	");
-    const day2 = parseInt(dayLine2Parts[0] || "0");
-    const time1 = dayLine2Parts[1] || "";
-    const timeLine2Parts = timeLine2.split("	");
-    const time2 = timeLine2Parts[0] || "";
-    const room1 = timeLine2Parts[1] || "";
-    const roomLine2Parts = roomLine2.split("	");
-    const room2 = roomLine2Parts[0] || "";
-    const instructor1 = roomLine2Parts[1] || "";
-    const instructor2 = instructorLine2.trim();
-    const schedules = [
-      { day: day1, time: time1, room: room1, instructor: instructor1 },
-      { day: day2, time: time2, room: room2, instructor: instructor2 }
-    ].filter((s2) => s2.day >= 2 && s2.day <= 7 && s2.time.includes("-"));
-    const schedule = schedules[0];
-    if (!schedule) continue;
-    const timeMatch = schedule.time.match(/^(\d+)-(\d+)$/);
-    if (!timeMatch) continue;
-    const lsStart = parseInt(timeMatch[1]);
-    const lsEnd = parseInt(timeMatch[2]);
-    const weekRange = [];
-    const allDateRanges = [dateRange1, dateRange2].filter((d2) => d2 && d2.includes("/"));
-    for (const range of allDateRanges) {
-      const dateMatch = range.trim().match(/(\d{2}\/\d{2}\/\d{4})-\s*(\d{2}\/\d{2}\/\d{4})/);
-      if (dateMatch) {
-        const startDate = new Date(dateMatch[1].split("/").reverse().join("-"));
-        const endDate = new Date(dateMatch[2].split("/").reverse().join("-"));
-        const semesterStart = /* @__PURE__ */ new Date("2025-02-03");
-        const startWeek = Math.floor((startDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1e3)) + 1;
-        const endWeek = Math.floor((endDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1e3)) + 1;
-        weekRange.push({
-          from: Math.max(1, startWeek),
-          to: Math.max(1, endWeek)
-        });
+function formatDateString(dateString) {
+  const parts = dateString.split("/");
+  if (parts.length === 3) {
+    const day = parts[0];
+    const month = parts[1];
+    const year = parts[2].slice(-2);
+    return `${day}/${month}/${year}`;
+  }
+  return dateString;
+}
+function parseThreeTimelineFormat(filteredLines, startIndex, name, id) {
+  const courses = [];
+  if (startIndex + 11 >= filteredLines.length) return courses;
+  const dateRange1 = filteredLines[startIndex + 1].trim();
+  const dateRange2 = filteredLines[startIndex + 2].trim();
+  const dateRange3Parts = filteredLines[startIndex + 3].split("	");
+  const dateRange3 = dateRange3Parts[0];
+  const day1 = parseInt(dateRange3Parts[1] || "0");
+  const day2 = parseInt(filteredLines[startIndex + 4].trim());
+  const dayTimeParts = filteredLines[startIndex + 5].split("	");
+  const day3 = parseInt(dayTimeParts[0] || "0");
+  const time1 = dayTimeParts[1] || "";
+  const time2 = filteredLines[startIndex + 6].trim();
+  const timeRoomParts = filteredLines[startIndex + 7].split("	");
+  const time3 = timeRoomParts[0] || "";
+  const room1 = timeRoomParts[1] || "";
+  const room2 = filteredLines[startIndex + 8].trim();
+  const roomInstructorParts = filteredLines[startIndex + 9].split("	");
+  const room3 = roomInstructorParts[0] || "";
+  const instructor1 = roomInstructorParts[1] || "";
+  const instructor2 = filteredLines[startIndex + 10].trim();
+  const instructor3 = filteredLines[startIndex + 11].trim();
+  const timelines = [
+    { day: day1, time: time1, room: room1, instructor: instructor1, dateRange: dateRange1 },
+    { day: day2, time: time2, room: room2, instructor: instructor2, dateRange: dateRange2 },
+    { day: day3, time: time3, room: room3, instructor: instructor3, dateRange: dateRange3 }
+  ];
+  for (const timeline of timelines) {
+    if (timeline.day >= 2 && timeline.day <= 7 && timeline.time.includes("-")) {
+      const timeMatch = timeline.time.match(/^(\d+)-(\d+)$/);
+      if (timeMatch) {
+        const lsStart = parseInt(timeMatch[1]);
+        const lsEnd = parseInt(timeMatch[2]);
+        const weekRange = [];
+        const dateMatch = timeline.dateRange.trim().match(/(\d{2}\/\d{2}\/\d{4})-\s*(\d{2}\/\d{2}\/\d{4})/);
+        if (dateMatch) {
+          const startDate = new Date(dateMatch[1].split("/").reverse().join("-"));
+          const endDate = new Date(dateMatch[2].split("/").reverse().join("-"));
+          const semesterStart = startDate.getFullYear() === 2024 ? /* @__PURE__ */ new Date("2024-12-01") : /* @__PURE__ */ new Date("2025-02-03");
+          const startWeek = Math.floor((startDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1e3)) + 1;
+          const endWeek = Math.floor((endDate.getTime() - semesterStart.getTime()) / (7 * 24 * 60 * 60 * 1e3)) + 1;
+          weekRange.push({
+            from: Math.max(1, startWeek),
+            to: Math.max(1, endWeek)
+          });
+        } else {
+          weekRange.push({ from: 1, to: 16 });
+        }
+        const course = {
+          id: id || name,
+          name,
+          instructor: timeline.instructor || "Chưa xác định",
+          time: [{
+            date: timeline.day,
+            class: timeline.room || "",
+            lsStart,
+            lsEnd
+          }],
+          weekRange,
+          originalDateRanges: [timeline.dateRange],
+          displayTimeInfo: ""
+        };
+        courses.push(course);
       }
     }
-    if (weekRange.length === 0) {
-      weekRange.push({ from: 1, to: 16 });
-    }
-    const course = {
-      id: id || name,
-      name,
-      instructor: schedule.instructor || "Chưa xác định",
-      time: [{
-        date: schedule.day,
-        class: schedule.room || "",
-        lsStart,
-        lsEnd
-      }],
-      weekRange
-    };
-    allCourses.push(course);
   }
-  console.log("Parsed UFL courses (national defense format):", allCourses);
-  console.log("Note: Schedule includes National Defense Education break period");
-  return allCourses;
+  return courses;
 }
 function createUniversityParser(university) {
   return function parseSchedule(s2) {
@@ -32664,6 +32806,7 @@ function App() {
   const [byWeek, setByWeek] = reactExports.useState(localStorage.getItem("byWeek") === "true" || false);
   const [showOnlyAvailable, setShowOnlyAvailable] = reactExports.useState(localStorage.getItem("showOnlyAvailable") === "true" || false);
   const [onlyToday, setOnlyToday] = reactExports.useState(localStorage.getItem("onlyToday") === "true" || false);
+  const [mergeTimeRanges, setMergeTimeRanges] = reactExports.useState(localStorage.getItem("mergeTimeRanges") === "true" || false);
   const [week, setWeek] = reactExports.useState(localStorage.getItem("week") ? Number(localStorage.getItem("week")) : 0);
   const [data, setData] = reactExports.useState(localStorage.getItem("data") || "");
   const [customFeatures, setCustomFeatures] = reactExports.useState(() => {
@@ -32704,6 +32847,66 @@ function App() {
   reactExports.useEffect(() => {
     localStorage.setItem("onlyToday", onlyToday.toString());
   }, [onlyToday]);
+  reactExports.useEffect(() => {
+    localStorage.setItem("mergeTimeRanges", mergeTimeRanges.toString());
+  }, [mergeTimeRanges]);
+  const mergeSimilarCourses = (courses) => {
+    const merged = [];
+    const processed = /* @__PURE__ */ new Set();
+    for (const course of courses) {
+      const courseKey = `${course.name}_${course.instructor}_${course.time.map((t2) => `${t2.date}_${t2.lsStart}_${t2.lsEnd}`).join("|")}`;
+      if (processed.has(courseKey)) continue;
+      const similarCourses = courses.filter(
+        (c2) => c2.name === course.name && c2.instructor === course.instructor && c2.time.length === course.time.length && c2.time.every(
+          (t2, i) => course.time[i] && t2.date === course.time[i].date && t2.lsStart === course.time[i].lsStart && t2.lsEnd === course.time[i].lsEnd
+        )
+      );
+      if (similarCourses.length > 1) {
+        const allOriginalRanges = similarCourses.flatMap((c2) => c2.originalDateRanges || []);
+        const allWeekRanges = similarCourses.flatMap((c2) => c2.weekRange);
+        let mergedTimeInfo = "";
+        if (allOriginalRanges.length > 0) {
+          const sortedRanges = allOriginalRanges.map((range) => {
+            const match = range.trim().match(/(\d{2}\/\d{2}\/\d{4})-\s*(\d{2}\/\d{2}\/\d{4})/);
+            if (match) {
+              return {
+                original: range,
+                startDate: new Date(match[1].split("/").reverse().join("-")),
+                endDate: new Date(match[2].split("/").reverse().join("-")),
+                startStr: match[1],
+                endStr: match[2]
+              };
+            }
+            return null;
+          }).filter(Boolean).sort((a2, b2) => a2.startDate.getTime() - b2.startDate.getTime());
+          if (sortedRanges.length > 0) {
+            const firstRange = sortedRanges[0];
+            const lastRange = sortedRanges[sortedRanges.length - 1];
+            const formatDate = (dateStr) => {
+              const parts = dateStr.split("/");
+              return `${parts[0]}/${parts[1]}/${parts[2].slice(-2)}`;
+            };
+            mergedTimeInfo = `${formatDate(firstRange.startStr)} - ${formatDate(lastRange.endStr)}`;
+          }
+        }
+        const mergedCourse = {
+          ...course,
+          originalDateRanges: allOriginalRanges,
+          weekRange: allWeekRanges,
+          displayTimeInfo: mergedTimeInfo
+        };
+        merged.push(mergedCourse);
+        similarCourses.forEach((c2) => {
+          const key = `${c2.name}_${c2.instructor}_${c2.time.map((t2) => `${t2.date}_${t2.lsStart}_${t2.lsEnd}`).join("|")}`;
+          processed.add(key);
+        });
+      } else {
+        merged.push(course);
+        processed.add(courseKey);
+      }
+    }
+    return merged;
+  };
   const scheduleData = reactExports.useMemo(() => {
     const d2 = [];
     if (selectedUniversity.id === "ufl") {
@@ -32719,8 +32922,11 @@ function App() {
         }
       });
     }
+    if (mergeTimeRanges) {
+      return mergeSimilarCourses(d2);
+    }
     return d2;
-  }, [data, selectedUniversity]);
+  }, [data, selectedUniversity, mergeTimeRanges]);
   const dt = reactExports.useMemo(() => {
     const universityTimeRange = getUniversityTimeRange(selectedUniversity);
     return /* @__PURE__ */ jsxRuntimeExports.jsx(jsxRuntimeExports.Fragment, { children: universityTimeRange.filter((tra) => !showOnlyAvailable || scheduleData.some(
@@ -32746,6 +32952,7 @@ function App() {
           className: tbCls.card,
           children: /* @__PURE__ */ jsxRuntimeExports.jsxs(p$p, { style: { display: "flex", flexDirection: "column", gap: "1px" }, children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { children: d2.name }),
+            d2.displayTimeInfo && /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { size: "1", style: { fontSize: "12px", color: "gray" }, color: "gray", children: d2.displayTimeInfo }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { size: "1", style: { fontSize: "10px", color: "grey" }, color: "gray", children: d2.instructor }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { size: "1", style: { fontSize: "12px", color: "gray" }, color: "gray", children: d2.time.filter((t2) => t2.date === day && t2.lsStart <= time2.lessonNumber && t2.lsEnd >= time2.lessonNumber).map((t2) => t2.class).join(", ") })
           ] })
@@ -32786,6 +32993,8 @@ function App() {
           setShowOnlyAvailable,
           onlyToday,
           setOnlyToday,
+          mergeTimeRanges,
+          setMergeTimeRanges,
           customFeatures,
           setCustomFeatures
         }

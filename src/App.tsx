@@ -242,7 +242,7 @@ export default function App() {
                                             <Text size="1" style={{ fontSize: '12px', color: 'gray' }} color="gray">{d.displayTimeInfo}</Text>
                                         )}
                                         <Text size="1" style={{ fontSize: '10px', color: 'grey' }} color="gray">{d.instructor}</Text>
-                                        <Text size="1" style={{ fontSize: '12px', color: 'gray' }} color="gray">{d.time.filter(t => t.date === day && t.lsStart <= time.lessonNumber && t.lsEnd >= time.lessonNumber).map(t => t.class).join(', ')}</Text>
+                                        <Text weight="bold" size="1" style={{ fontSize: '14px'}} color="gray">{d.time.filter(t => t.date === day && t.lsStart <= time.lessonNumber && t.lsEnd >= time.lessonNumber).map(t => t.class).join(', ')}</Text>
                                     </Box>
                                 </Box>
                             ))}

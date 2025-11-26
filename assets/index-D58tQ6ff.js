@@ -24233,59 +24233,144 @@ function parseThreeTimelineFormat(filteredLines, startIndex, name, id) {
   }
   return courses;
 }
+function parseDUTFormat(s2, university) {
+  let id = "", name = "", instructor = "";
+  const time2 = [], weekRange = [];
+  const match = university.parserConfig.globalRegex.exec(s2);
+  if (!match) return null;
+  for (let i = 1; i < match.length; i++) {
+    if (!match[i]) continue;
+    const idMatch = match[i].match(university.parserConfig.patterns.id);
+    if (!idMatch) continue;
+    id = idMatch[0];
+    name = match[i + 1];
+    instructor = match[i + 2];
+    const dateMatch = match[i + 3].match(university.parserConfig.patterns.dates);
+    if (!dateMatch) continue;
+    for (const date of dateMatch) {
+      university.parserConfig.patterns.date.lastIndex = 0;
+      const dateArr = university.parserConfig.patterns.date.exec(date);
+      if (!dateArr) continue;
+      time2.push({
+        date: dateArr[1] ? parseInt(dateArr[1], 10) : 8,
+        // Default to Sunday if not found
+        class: dateArr[4],
+        lsStart: parseInt(dateArr[2]),
+        lsEnd: parseInt(dateArr[3])
+      });
+    }
+    university.parserConfig.patterns.weeksRange.lastIndex = 0;
+    const weekRangeMatches = university.parserConfig.patterns.weeksRange.exec(match[i + 4]);
+    if (!weekRangeMatches) continue;
+    const weekRangeArr = weekRangeMatches[0].split(";");
+    for (const weekRangeStr of weekRangeArr) {
+      university.parserConfig.patterns.weekRange.lastIndex = 0;
+      const weekRangeMatch = university.parserConfig.patterns.weekRange.exec(weekRangeStr);
+      if (!weekRangeMatch) continue;
+      weekRange.push({
+        from: parseInt(weekRangeMatch[1]),
+        to: parseInt(weekRangeMatch[2])
+      });
+    }
+    break;
+  }
+  return {
+    id,
+    name,
+    instructor,
+    time: time2,
+    weekRange
+  };
+}
+function parseDUTPreviewMode(input) {
+  const lines = input.trim().split("\n").map((line) => line.trim()).filter((line) => line.length > 0);
+  const courses = [];
+  const dayMap = {
+    "Thứ 2": 2,
+    "Thứ 3": 3,
+    "Thứ 4": 4,
+    "Thứ 5": 5,
+    "Thứ 6": 6,
+    "Thứ 7": 7,
+    "Chủ nhật": 8
+  };
+  for (const line of lines) {
+    const columns = line.split("	").map((col) => col.trim());
+    if (columns.length < 7) continue;
+    const courseId = columns[1];
+    const courseName = columns[2];
+    const instructor = columns[4];
+    const timeLocationStr = columns[5];
+    const weeksStr = columns[6];
+    if (!courseName || !instructor || !timeLocationStr || !weeksStr) continue;
+    const time2 = [];
+    const weekRange = [];
+    const timeSlots = timeLocationStr.split(";");
+    for (const slot of timeSlots) {
+      const fullDayMatch = slot.match(/(Thứ \d|Chủ nhật):\s*(\d+)-(\d+),([^;]+)/);
+      const shortDayMatch = slot.match(/(\d):\s*(\d+)-(\d+),([^;]+)/);
+      if (fullDayMatch) {
+        const dayName = fullDayMatch[1];
+        const dayNumber = dayMap[dayName] || 8;
+        const lsStart = parseInt(fullDayMatch[2], 10);
+        const lsEnd = parseInt(fullDayMatch[3], 10);
+        const location = fullDayMatch[4].trim();
+        time2.push({
+          date: dayNumber,
+          class: location,
+          lsStart,
+          lsEnd
+        });
+      } else if (shortDayMatch) {
+        const dayNumber = parseInt(shortDayMatch[1], 10);
+        const lsStart = parseInt(shortDayMatch[2], 10);
+        const lsEnd = parseInt(shortDayMatch[3], 10);
+        const location = shortDayMatch[4].trim();
+        time2.push({
+          date: dayNumber,
+          class: location,
+          lsStart,
+          lsEnd
+        });
+      }
+    }
+    const weekRanges = weeksStr.split(";");
+    for (const range of weekRanges) {
+      const weekMatch = range.match(/(\d+)-(\d+)/);
+      if (weekMatch) {
+        weekRange.push({
+          from: parseInt(weekMatch[1], 10),
+          to: parseInt(weekMatch[2], 10)
+        });
+      }
+    }
+    if (time2.length > 0 && weekRange.length > 0) {
+      courses.push({
+        id: courseId,
+        name: courseName,
+        instructor,
+        time: time2,
+        weekRange
+      });
+    }
+  }
+  return courses;
+}
 function createUniversityParser(university) {
   return function parseSchedule(s2) {
     if (university.id === "ufl") {
       const courses = parseUFLFormat(s2);
       return courses.length > 0 ? courses[0] : null;
     }
-    let id = "", name = "", instructor = "";
-    const time2 = [], weekRange = [];
-    const match = university.parserConfig.globalRegex.exec(s2);
-    if (!match) return null;
-    for (let i = 1; i < match.length; i++) {
-      if (!match[i]) continue;
-      const idMatch = match[i].match(university.parserConfig.patterns.id);
-      if (!idMatch) continue;
-      id = idMatch[0];
-      name = match[i + 1];
-      instructor = match[i + 2];
-      const dateMatch = match[i + 3].match(university.parserConfig.patterns.dates);
-      if (!dateMatch) continue;
-      for (const date of dateMatch) {
-        university.parserConfig.patterns.date.lastIndex = 0;
-        const dateArr = university.parserConfig.patterns.date.exec(date);
-        if (!dateArr) continue;
-        time2.push({
-          date: dateArr[1] ? parseInt(dateArr[1], 10) : 8,
-          // Default to Sunday if not found
-          class: dateArr[4],
-          lsStart: parseInt(dateArr[2]),
-          lsEnd: parseInt(dateArr[3])
-        });
+    if (university.id === "dut") {
+      const result = parseDUTFormat(s2, university);
+      if (result) {
+        return result;
       }
-      university.parserConfig.patterns.weeksRange.lastIndex = 0;
-      const weekRangeMatches = university.parserConfig.patterns.weeksRange.exec(match[i + 4]);
-      if (!weekRangeMatches) continue;
-      const weekRangeArr = weekRangeMatches[0].split(";");
-      for (const weekRangeStr of weekRangeArr) {
-        university.parserConfig.patterns.weekRange.lastIndex = 0;
-        const weekRangeMatch = university.parserConfig.patterns.weekRange.exec(weekRangeStr);
-        if (!weekRangeMatch) continue;
-        weekRange.push({
-          from: parseInt(weekRangeMatch[1]),
-          to: parseInt(weekRangeMatch[2])
-        });
-      }
-      break;
+      const previewResults = parseDUTPreviewMode(s2);
+      return previewResults.length > 0 ? previewResults[0] : null;
     }
-    return {
-      id,
-      name,
-      instructor,
-      time: time2,
-      weekRange
-    };
+    return parseDUTFormat(s2, university);
   };
 }
 function getUniversityTimeRange(university) {
@@ -33125,4 +33210,4 @@ const ThemeMatcher = ({ children }) => {
 clientExports.createRoot(document.getElementById("root")).render(
   /* @__PURE__ */ jsxRuntimeExports.jsx(reactExports.StrictMode, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(ThemeMatcher, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(App, {}) }) })
 );
-//# sourceMappingURL=index-DwUWQU6e.js.map
+//# sourceMappingURL=index-D58tQ6ff.js.map

@@ -22,11 +22,12 @@
  * SOFTWARE.
  */
 
-import { Box, Button, Card, Container, Flex, Text, TextArea } from "@radix-ui/themes";
+import { Box, Button, Card, Container, ContextMenu, Flex, Text, TextArea } from "@radix-ui/themes";
 import { useEffect, useMemo, useRef, useState } from "react";
 import Footer from "./components/Footer";
 import UniversitySwitcher from "./components/UniversitySwitcher";
 import UniversityFeatures from "./components/UniversityFeatures";
+import AddCustomCourse from "./components/AddCustomCourse";
 import createUniversityParser, { TKBType } from "./core/universityParser";
 import parseUFLFormat from "./core/uflParser";
 import getUniversityTimeRange from "./core/universityTimeRange";
@@ -44,11 +45,19 @@ export default function App() {
     const [onlyToday, setOnlyToday] = useState(localStorage.getItem('onlyToday') === 'true' || false);
     const [mergeTimeRanges, setMergeTimeRanges] = useState(localStorage.getItem('mergeTimeRanges') !== 'false'); // Default to true
     const [week, setWeek] = useState(localStorage.getItem('week') ? Number(localStorage.getItem('week')) : 0);
+    const [byDateRange, setByDateRange] = useState(localStorage.getItem('byDateRange') === 'true' || false);
+    const [dateRangeStart, setDateRangeStart] = useState<string>(localStorage.getItem('dateRangeStart') || '');
+    const [dateRangeEnd, setDateRangeEnd] = useState<string>(localStorage.getItem('dateRangeEnd') || '');
     const [data, setData] = useState(localStorage.getItem('data') || '');
+    const [customCourses, setCustomCourses] = useState<TKBType[]>(() => {
+        const saved = localStorage.getItem(`customCourses_${selectedUniversity.id}`);
+        return saved ? JSON.parse(saved) : [];
+    });
     const [customFeatures, setCustomFeatures] = useState<Record<string, boolean>>(() => {
         const saved = localStorage.getItem('customFeatures');
         return saved ? JSON.parse(saved) : {};
     });
+    const [editingCourse, setEditingCourse] = useState<TKBType | null>(null);
     const tableRef = useRef<HTMLTableElement>(null);
 
     // Save university selection
@@ -60,6 +69,38 @@ export default function App() {
     useEffect(() => {
         localStorage.setItem('customFeatures', JSON.stringify(customFeatures));
     }, [customFeatures]);
+
+    // Save custom courses per university
+    useEffect(() => {
+        localStorage.setItem(`customCourses_${selectedUniversity.id}`, JSON.stringify(customCourses));
+    }, [customCourses, selectedUniversity.id]);
+
+    // Load custom courses when university changes
+    useEffect(() => {
+        const saved = localStorage.getItem(`customCourses_${selectedUniversity.id}`);
+        setCustomCourses(saved ? JSON.parse(saved) : []);
+    }, [selectedUniversity.id]);
+
+    const handleAddCustomCourse = (course: TKBType) => {
+        if (editingCourse) {
+            // Update existing course
+            setCustomCourses(prev => prev.map(c => c.id === editingCourse.id ? course : c));
+            setEditingCourse(null);
+        } else {
+            // Add new course
+            setCustomCourses(prev => [...prev, course]);
+        }
+    };
+
+    const handleDeleteCourse = (courseId: string) => {
+        if (confirm('Bạn có chắc muốn xóa môn học này?')) {
+            setCustomCourses(prev => prev.filter(c => c.id !== courseId));
+        }
+    };
+
+    const handleEditCourse = (course: TKBType) => {
+        setEditingCourse(course);
+    };
 
     const handleUniversityChange = (university: UniversityConfig) => {
         setSelectedUniversity(university);
@@ -99,6 +140,18 @@ export default function App() {
     useEffect(() => {
         localStorage.setItem('mergeTimeRanges', mergeTimeRanges.toString());
     }, [mergeTimeRanges]);
+
+    useEffect(() => {
+        localStorage.setItem('byDateRange', byDateRange.toString());
+    }, [byDateRange]);
+
+    useEffect(() => {
+        localStorage.setItem('dateRangeStart', dateRangeStart);
+    }, [dateRangeStart]);
+
+    useEffect(() => {
+        localStorage.setItem('dateRangeEnd', dateRangeEnd);
+    }, [dateRangeEnd]);
 
     // Function to merge courses with same name and overlapping time slots
     const mergeSimilarCourses = (courses: TKBType[]): TKBType[] => {
@@ -207,52 +260,142 @@ export default function App() {
             });
         }
 
+        // Add custom courses
+        d.push(...customCourses);
+
         // Merge courses with same name and time slots if enabled
         if (mergeTimeRanges) {
             return mergeSimilarCourses(d);
         }
 
         return d;
-    }, [data, selectedUniversity, mergeTimeRanges]);
+    }, [data, selectedUniversity, mergeTimeRanges, customCourses]);
 
     const dt = useMemo(() => {
         const universityTimeRange = getUniversityTimeRange(selectedUniversity);
         
+        // Helper function to check if course is in date range
+        const isInDateRange = (course: TKBType) => {
+            if (!byDateRange || !dateRangeStart || !dateRangeEnd) return true;
+            
+            const startDate = new Date(dateRangeStart);
+            const endDate = new Date(dateRangeEnd);
+            
+            // For UFL courses with originalDateRanges
+            if (course.originalDateRanges && course.originalDateRanges.length > 0) {
+                return course.originalDateRanges.some(range => {
+                    const match = range.match(/(\d{2})\/(\d{2})\/(\d{4})\s*-\s*(\d{2})\/(\d{2})\/(\d{4})/);
+                    if (match) {
+                        const courseStart = new Date(`${match[3]}-${match[2]}-${match[1]}`);
+                        const courseEnd = new Date(`${match[6]}-${match[5]}-${match[4]}`);
+                        // Check if ranges overlap
+                        return !(courseEnd < startDate || courseStart > endDate);
+                    }
+                    return false;
+                });
+            }
+            
+            return true;
+        };
+        
+        // Filter time slots based on showOnlyAvailable
+        const filteredTimeRange = showOnlyAvailable 
+            ? universityTimeRange.filter((timeSlot) => 
+                scheduleData.some(course =>
+                    course.time.some(t => 
+                        t.lsStart <= timeSlot.lessonNumber && 
+                        t.lsEnd >= timeSlot.lessonNumber && 
+                        (!byWeek || course.weekRange.some(wr => wr.from <= week && wr.to >= week)) &&
+                        isInDateRange(course)
+                    )
+                )
+            )
+            : universityTimeRange;
+
         return (
             <>
-                {universityTimeRange.filter((tra) => !showOnlyAvailable || scheduleData.some(d =>
-                    d.time.some(t => t.lsStart <= tra.lessonNumber && t.lsEnd >= tra.lessonNumber && (!byWeek || d.weekRange.some(wr => wr.from <= week && wr.to >= week)))
-                )).map((time, tr) => (
+                {filteredTimeRange.map((time, tr) => (
                     <tr key={tr}>
                         <td>
                             <Text size="1" style={{ fontSize: '12px', color: 'gray' }} color="gray">Tiết {time.lessonNumber}</Text>
                             <br />
                             <Text>{time.start} - {time.end}</Text>
-                    </td>
-                    {Array.from({ length: 7 }, (_, i) => i + 2).map(day => (onlyToday && (day === (new Date()).getDay() + 1 || (day === 8 && (new Date()).getDay() === 0)) || !onlyToday) && (
-                        <td key={day}>
-                            {scheduleData.filter(d =>
-                                d.time.some(t => t.date === day && t.lsStart <= time.lessonNumber && t.lsEnd >= time.lessonNumber && (!byWeek || d.weekRange.some(wr => wr.from <= week && wr.to >= week)))
-                            ).map((d, ind) => (
-                                <Box className={tbCls.card}
-                                    key={d.id + day + ind}>
-                                    <Box style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                                        <Text weight="bold">{d.name}</Text>
-                                        {d.displayTimeInfo && (
-                                            <Text size="1" style={{ fontSize: '12px', color: 'gray' }} color="gray">{d.displayTimeInfo}</Text>
-                                        )}
-                                        <Text size="1" style={{ fontSize: '10px', color: 'grey' }} color="gray">{d.instructor}</Text>
-                                        <Text weight="bold" size="1" style={{ fontSize: '14px'}} color="gray">{d.time.filter(t => t.date === day && t.lsStart <= time.lessonNumber && t.lsEnd >= time.lessonNumber).map(t => t.class).join(', ')}</Text>
-                                    </Box>
-                                </Box>
-                            ))}
                         </td>
-                    ))}
-                </tr>
+                        {Array.from({ length: 7 }, (_, i) => i + 2).map(day => (onlyToday && (day === (new Date()).getDay() + 1 || (day === 8 && (new Date()).getDay() === 0)) || !onlyToday) && (
+                            <td key={day}>
+                                {(() => {
+                                    const coursesInSlot = scheduleData.filter(d =>
+                                        d.time.some(t => t.date === day && t.lsStart <= time.lessonNumber && t.lsEnd >= time.lessonNumber && (!byWeek || d.weekRange.some(wr => wr.from <= week && wr.to >= week))) &&
+                                        isInDateRange(d)
+                                    );
+                                    const hasConflict = coursesInSlot.length > 1;
+
+                                    return coursesInSlot.map((d, ind) => {
+                                        const isCustomCourse = d.id.startsWith('custom-');
+                                        
+                                        const courseCard = (
+                                            <Box 
+                                                className={tbCls.card}
+                                                key={d.id + day + ind}
+                                                style={{ 
+                                                    marginBottom: hasConflict && ind < coursesInSlot.length - 1 ? '4px' : undefined,
+                                                    position: 'relative'
+                                                }}
+                                            >
+                                                {hasConflict && (
+                                                    <Box 
+                                                        style={{ 
+                                                            position: 'absolute',
+                                                            top: '4px',
+                                                            right: '4px',
+                                                            fontSize: '16px',
+                                                            cursor: 'help'
+                                                        }}
+                                                        title="Trùng lịch học"
+                                                    >
+                                                        ⚠️
+                                                    </Box>
+                                                )}
+                                                <Box style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                                                    <Text weight="bold">{d.name}</Text>
+                                                    {d.displayTimeInfo && (
+                                                        <Text size="1" style={{ fontSize: '12px', color: 'gray' }} color="gray">{d.displayTimeInfo}</Text>
+                                                    )}
+                                                    <Text size="1" style={{ fontSize: '10px', color: 'grey' }} color="gray">{d.instructor}</Text>
+                                                    <Text weight="bold" size="1" style={{ fontSize: '14px'}} color="gray">{d.time.filter(t => t.date === day && t.lsStart <= time.lessonNumber && t.lsEnd >= time.lessonNumber).map(t => t.class).join(', ')}</Text>
+                                                </Box>
+                                            </Box>
+                                        );
+
+                                        if (isCustomCourse) {
+                                            return (
+                                                <ContextMenu.Root key={d.id + day + ind}>
+                                                    <ContextMenu.Trigger>
+                                                        {courseCard}
+                                                    </ContextMenu.Trigger>
+                                                    <ContextMenu.Content>
+                                                        <ContextMenu.Item onClick={() => handleEditCourse(d)}>
+                                                            ✏️ Chỉnh sửa
+                                                        </ContextMenu.Item>
+                                                        <ContextMenu.Separator />
+                                                        <ContextMenu.Item color="red" onClick={() => handleDeleteCourse(d.id)}>
+                                                            🗑️ Xóa
+                                                        </ContextMenu.Item>
+                                                    </ContextMenu.Content>
+                                                </ContextMenu.Root>
+                                            );
+                                        }
+
+                                        return courseCard;
+                                    });
+                                })()}
+                            </td>
+                        ))}
+                    </tr>
                 ))}
             </>
         );
-    }, [week, byWeek, scheduleData, showOnlyAvailable, onlyToday, selectedUniversity]);    return (
+    }, [week, byWeek, byDateRange, dateRangeStart, dateRangeEnd, scheduleData, showOnlyAvailable, onlyToday, selectedUniversity]);    return (
         <>
             <Container>
                 <Card my="3" mx="3" style={{ width: 'calc(100% - 2rem)', padding: '1.5rem' }}>
@@ -275,6 +418,12 @@ export default function App() {
                             setByWeek={setByWeek}
                             week={week}
                             setWeek={setWeek}
+                            byDateRange={byDateRange}
+                            setByDateRange={setByDateRange}
+                            dateRangeStart={dateRangeStart}
+                            setDateRangeStart={setDateRangeStart}
+                            dateRangeEnd={dateRangeEnd}
+                            setDateRangeEnd={setDateRangeEnd}
                             showOnlyAvailable={showOnlyAvailable}
                             setShowOnlyAvailable={setShowOnlyAvailable}
                             onlyToday={onlyToday}
@@ -285,11 +434,18 @@ export default function App() {
                             setCustomFeatures={setCustomFeatures}
                         />
                         <Flex align="center" gap="1">
+                            <AddCustomCourse 
+                                onAdd={handleAddCustomCourse} 
+                                editingCourse={editingCourse}
+                                onEditComplete={() => setEditingCourse(null)}
+                                university={selectedUniversity}
+                            />
                             <Button
                                 color="red"
                                 variant="soft"
                                 onClick={() => {
                                     setData('');
+                                    setCustomCourses([]);
                                     setByWeek(false);
                                     setWeek(0);
                                     setShowOnlyAvailable(false);

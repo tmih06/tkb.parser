@@ -32,6 +32,12 @@ interface UniversityFeaturesProps {
   setByWeek: (value: boolean) => void;
   week: number;
   setWeek: (value: number) => void;
+  byDateRange: boolean;
+  setByDateRange: (value: boolean) => void;
+  dateRangeStart: string;
+  setDateRangeStart: (value: string) => void;
+  dateRangeEnd: string;
+  setDateRangeEnd: (value: string) => void;
   showOnlyAvailable: boolean;
   setShowOnlyAvailable: (value: boolean) => void;
   onlyToday: boolean;
@@ -49,6 +55,12 @@ export default function UniversityFeatures({
   setByWeek,
   week,
   setWeek,
+  byDateRange,
+  setByDateRange,
+  dateRangeStart,
+  setDateRangeStart,
+  dateRangeEnd,
+  setDateRangeEnd,
   showOnlyAvailable,
   setShowOnlyAvailable,
   onlyToday,
@@ -89,6 +101,34 @@ export default function UniversityFeatures({
             value={week}
             onChange={(e) => setWeek(Number(e.currentTarget.value))}
             size="1" type="number" placeholder="Tuần"
+          />
+        </Flex>
+      )}
+
+      {features.byDateRange && (
+        <Flex gap="2" align="center">
+          <Checkbox
+            checked={byDateRange}
+            onCheckedChange={(e) => setByDateRange(Boolean(e))}
+          />
+          Theo khoảng ngày
+          <TextField.Root
+            disabled={!byDateRange}
+            style={{ width: '9rem' }}
+            value={dateRangeStart}
+            onChange={(e) => setDateRangeStart(e.currentTarget.value)}
+            size="1" 
+            type="date"
+            placeholder="Từ ngày"
+          />
+          <TextField.Root
+            disabled={!byDateRange}
+            style={{ width: '9rem' }}
+            value={dateRangeEnd}
+            onChange={(e) => setDateRangeEnd(e.currentTarget.value)}
+            size="1" 
+            type="date"
+            placeholder="Đến ngày"
           />
         </Flex>
       )}

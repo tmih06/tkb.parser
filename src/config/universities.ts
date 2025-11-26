@@ -45,6 +45,7 @@ export interface ParserConfig {
 
 export interface UniversityFeatures {
   byWeek: boolean;
+  byDateRange?: boolean; // For universities that use date ranges instead of weeks
   showOnlyAvailable: boolean;
   onlyToday: boolean;
   customFeatures?: {
@@ -85,7 +86,7 @@ export const UNIVERSITIES: UniversityConfig[] = [
     videoUrl: 'https://youtu.be/wiavNgTzB9o',
     placeholder: 'Dán bảng đã copy từ trang sinh viên DUT vào đây...',
     features: {
-      byWeek: false, // disbale this cuz no one use it
+      byWeek: true,
       showOnlyAvailable: true,
       onlyToday: true,
     },
@@ -132,6 +133,7 @@ export const UNIVERSITIES: UniversityConfig[] = [
     placeholder: 'Dán bảng đã copy từ trang sinh viên UFL vào đây...',
     features: {
       byWeek: false, // UFL uses dates, not weeks
+      byDateRange: true, // UFL uses date ranges
       showOnlyAvailable: true,
       onlyToday: true,
     },

@@ -24,6 +24,8 @@
 
 import { UniversityConfig } from '../config/universities';
 import parseUFLFormat from './uflParser';
+import parseDUTFormat from './dutParser';
+import parseDUTPreviewMode from './dutParser_previewmode';
 
 export interface TKBType {
     id: string;
@@ -53,77 +55,21 @@ export function createUniversityParser(university: UniversityConfig) {
             return courses.length > 0 ? courses[0] : null;
         }
         
-        // Use standard parser for other universities (like DUT)
-        let id = "",
-            name = "",
-            instructor = "";
-        const time: TKBType['time'] = [],
-            weekRange: TKBType['weekRange'] = []
-
-        const match = university.parserConfig.globalRegex.exec(s);
-
-        if (!match) return null;
-
-        // Find ID, name, and instructor based on university-specific patterns
-        for (let i = 1; i < match.length; i++) {
-            if (!match[i]) continue;
-
-            const idMatch = match[i].match(university.parserConfig.patterns.id);
-            if (!idMatch) continue;
-
-            id = idMatch[0];
-            name = match[i + 1];
-            instructor = match[i + 2];
-
-            const dateMatch = match[i + 3].match(university.parserConfig.patterns.dates);
-
-            if (!dateMatch) continue;
-
-            // Parse dates and time slots
-            for (const date of dateMatch) {
-                // Reset regex state
-                university.parserConfig.patterns.date.lastIndex = 0;
-                const dateArr = university.parserConfig.patterns.date.exec(date);
-
-                if (!dateArr) continue;
-
-                time.push({
-                    date: dateArr[1] ? parseInt(dateArr[1], 10) : 8, // Default to Sunday if not found
-                    class: dateArr[4],
-                    lsStart: parseInt(dateArr[2]),
-                    lsEnd: parseInt(dateArr[3])
-                });
+        // Use DUT parser for DUT university
+        if (university.id === 'dut') {
+            // Try standard DUT format first
+            const result = parseDUTFormat(s, university);
+            if (result) {
+                return result;
             }
-
-            // Parse week ranges
-            university.parserConfig.patterns.weeksRange.lastIndex = 0;
-            const weekRangeMatches = university.parserConfig.patterns.weeksRange.exec(match[i + 4]);
-
-            if (!weekRangeMatches) continue;
-
-            const weekRangeArr = weekRangeMatches[0].split(';');
-
-            for (const weekRangeStr of weekRangeArr) {
-                university.parserConfig.patterns.weekRange.lastIndex = 0;
-                const weekRangeMatch = university.parserConfig.patterns.weekRange.exec(weekRangeStr);
-
-                if (!weekRangeMatch) continue;
-
-                weekRange.push({
-                    from: parseInt(weekRangeMatch[1]),
-                    to: parseInt(weekRangeMatch[2])
-                });
-            }
-            break;
+            
+            // If standard format fails, try preview mode format
+            const previewResults = parseDUTPreviewMode(s);
+            return previewResults.length > 0 ? previewResults[0] : null;
         }
-
-        return {
-            id,
-            name,
-            instructor,
-            time,
-            weekRange
-        };
+        
+        // Default: use DUT parser for other universities with similar format
+        return parseDUTFormat(s, university);
     };
 }
 

@@ -12070,7 +12070,7 @@ function getElementRef$1(element) {
   }
   return element.props.ref || element.ref;
 }
-var Root$9 = Slot;
+var Root$a = Slot;
 var NODES = [
   "a",
   "button",
@@ -12131,7 +12131,7 @@ var VisuallyHidden = reactExports.forwardRef(
   }
 );
 VisuallyHidden.displayName = NAME$3;
-var Root$8 = VisuallyHidden;
+var Root$9 = VisuallyHidden;
 var NAME$2 = "AccessibleIcon";
 var AccessibleIcon = ({ children, label }) => {
   const child = reactExports.Children.only(children);
@@ -12142,11 +12142,11 @@ var AccessibleIcon = ({ children, label }) => {
       focusable: "false"
       // See: https://allyjs.io/tutorials/focusing-in-svg.html#making-svg-elements-focusable
     }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Root$8, { children: label })
+    /* @__PURE__ */ jsxRuntimeExports.jsx(Root$9, { children: label })
   ] });
 };
 AccessibleIcon.displayName = NAME$2;
-var Root2$6 = AccessibleIcon;
+var Root2$7 = AccessibleIcon;
 function createContext2(rootComponentName, defaultContext) {
   const Context2 = reactExports.createContext(defaultContext);
   const Provider2 = (props) => {
@@ -12472,7 +12472,7 @@ function useId(deterministicId) {
   useLayoutEffect2(() => {
     setId((reactId) => reactId ?? String(count$1++));
   }, [deterministicId]);
-  return id ? `radix-${id}` : "";
+  return deterministicId || (id ? `radix-${id}` : "");
 }
 var DirectionContext = reactExports.createContext(void 0);
 var DirectionProvider = (props) => {
@@ -13714,6 +13714,40 @@ var hideOthers = function(originalTarget, parentNode, markerName) {
 var DIALOG_NAME = "Dialog";
 var [createDialogContext, createDialogScope] = createContextScope(DIALOG_NAME);
 var [DialogProvider, useDialogContext] = createDialogContext(DIALOG_NAME);
+var Dialog = (props) => {
+  const {
+    __scopeDialog,
+    children,
+    open: openProp,
+    defaultOpen,
+    onOpenChange,
+    modal = true
+  } = props;
+  const triggerRef = reactExports.useRef(null);
+  const contentRef = reactExports.useRef(null);
+  const [open = false, setOpen] = useControllableState({
+    prop: openProp,
+    defaultProp: defaultOpen,
+    onChange: onOpenChange
+  });
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    DialogProvider,
+    {
+      scope: __scopeDialog,
+      triggerRef,
+      contentRef,
+      contentId: useId(),
+      titleId: useId(),
+      descriptionId: useId(),
+      open,
+      onOpenChange: setOpen,
+      onOpenToggle: reactExports.useCallback(() => setOpen((prevOpen) => !prevOpen), [setOpen]),
+      modal,
+      children
+    }
+  );
+};
+Dialog.displayName = DIALOG_NAME;
 var TRIGGER_NAME$9 = "DialogTrigger";
 var DialogTrigger = reactExports.forwardRef(
   (props, forwardedRef) => {
@@ -13973,6 +14007,7 @@ var DescriptionWarning$1 = ({ contentRef, descriptionId }) => {
   }, [MESSAGE, contentRef, descriptionId]);
   return null;
 };
+var Root$8 = Dialog;
 var Trigger$7 = DialogTrigger;
 var Portal$5 = DialogPortal;
 var Overlay = DialogOverlay;
@@ -16508,7 +16543,7 @@ function getSideAndAlignFromPlacement(placement) {
   const [side, align = "center"] = placement.split("-");
   return [side, align];
 }
-var Root2$5 = Popper;
+var Root2$6 = Popper;
 var Anchor = PopperAnchor;
 var Content$1 = PopperContent;
 var Arrow = PopperArrow;
@@ -16741,6 +16776,50 @@ var usePopperScope$4 = createPopperScope();
 var useRovingFocusGroupScope$3 = createRovingFocusGroupScope();
 var [MenuProvider, useMenuContext] = createMenuContext(MENU_NAME);
 var [MenuRootProvider, useMenuRootContext] = createMenuContext(MENU_NAME);
+var Menu = (props) => {
+  const { __scopeMenu, open = false, children, dir, onOpenChange, modal = true } = props;
+  const popperScope = usePopperScope$4(__scopeMenu);
+  const [content2, setContent] = reactExports.useState(null);
+  const isUsingKeyboardRef = reactExports.useRef(false);
+  const handleOpenChange = useCallbackRef$1(onOpenChange);
+  const direction2 = useDirection(dir);
+  reactExports.useEffect(() => {
+    const handleKeyDown = () => {
+      isUsingKeyboardRef.current = true;
+      document.addEventListener("pointerdown", handlePointer, { capture: true, once: true });
+      document.addEventListener("pointermove", handlePointer, { capture: true, once: true });
+    };
+    const handlePointer = () => isUsingKeyboardRef.current = false;
+    document.addEventListener("keydown", handleKeyDown, { capture: true });
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown, { capture: true });
+      document.removeEventListener("pointerdown", handlePointer, { capture: true });
+      document.removeEventListener("pointermove", handlePointer, { capture: true });
+    };
+  }, []);
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(Root2$6, { ...popperScope, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+    MenuProvider,
+    {
+      scope: __scopeMenu,
+      open,
+      onOpenChange: handleOpenChange,
+      content: content2,
+      onContentChange: setContent,
+      children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+        MenuRootProvider,
+        {
+          scope: __scopeMenu,
+          onClose: reactExports.useCallback(() => handleOpenChange(false), [handleOpenChange]),
+          isUsingKeyboardRef,
+          dir: direction2,
+          modal,
+          children
+        }
+      )
+    }
+  ) });
+};
+Menu.displayName = MENU_NAME;
 var ANCHOR_NAME$1 = "MenuAnchor";
 var MenuAnchor = reactExports.forwardRef(
   (props, forwardedRef) => {
@@ -17446,6 +17525,7 @@ function isPointerInGraceArea(event, area) {
 function whenMouse$1(handler) {
   return (event) => event.pointerType === "mouse" ? handler(event) : void 0;
 }
+var Root3$1 = Menu;
 var Anchor2$1 = MenuAnchor;
 var Portal$4 = MenuPortal;
 var Content2$6 = MenuContent;
@@ -17466,6 +17546,40 @@ var [createContextMenuContext, createContextMenuScope] = createContextScope(CONT
 ]);
 var useMenuScope$1 = createMenuScope();
 var [ContextMenuProvider, useContextMenuContext] = createContextMenuContext(CONTEXT_MENU_NAME);
+var ContextMenu = (props) => {
+  const { __scopeContextMenu, children, onOpenChange, dir, modal = true } = props;
+  const [open, setOpen] = reactExports.useState(false);
+  const menuScope = useMenuScope$1(__scopeContextMenu);
+  const handleOpenChangeProp = useCallbackRef$1(onOpenChange);
+  const handleOpenChange = reactExports.useCallback(
+    (open2) => {
+      setOpen(open2);
+      handleOpenChangeProp(open2);
+    },
+    [handleOpenChangeProp]
+  );
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    ContextMenuProvider,
+    {
+      scope: __scopeContextMenu,
+      open,
+      onOpenChange: handleOpenChange,
+      modal,
+      children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+        Root3$1,
+        {
+          ...menuScope,
+          dir,
+          open,
+          onOpenChange: handleOpenChange,
+          modal,
+          children
+        }
+      )
+    }
+  );
+};
+ContextMenu.displayName = CONTEXT_MENU_NAME;
 var TRIGGER_NAME$7 = "ContextMenuTrigger";
 var ContextMenuTrigger = reactExports.forwardRef(
   (props, forwardedRef) => {
@@ -17676,6 +17790,7 @@ ContextMenuSubContent.displayName = SUB_CONTENT_NAME$1;
 function whenTouchOrPen(handler) {
   return (event) => event.pointerType !== "mouse" ? handler(event) : void 0;
 }
+var Root2$5 = ContextMenu;
 var Trigger$6 = ContextMenuTrigger;
 var Portal2$1 = ContextMenuPortal;
 var Content2$5 = ContextMenuContent;
@@ -18403,7 +18518,7 @@ var NavigationMenuTrigger = reactExports.forwardRef((props, forwardedRef) => {
     ) }) }),
     open && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(
-        Root$8,
+        Root$9,
         {
           "aria-hidden": true,
           tabIndex: 0,
@@ -18865,7 +18980,7 @@ var Popover = (props) => {
     defaultProp: defaultOpen,
     onChange: onOpenChange
   });
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(Root2$5, { ...popperScope, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(Root2$6, { ...popperScope, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
     PopoverProvider,
     {
       scope: __scopePopover,
@@ -22321,7 +22436,7 @@ var Tooltip = (props) => {
       }
     };
   }, []);
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(Root2$5, { ...popperScope, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(Root2$6, { ...popperScope, children: /* @__PURE__ */ jsxRuntimeExports.jsx(
     TooltipContextProvider,
     {
       scope: __scopeTooltip,
@@ -22534,7 +22649,7 @@ var TooltipContentImpl = reactExports.forwardRef(
             },
             children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx(Slottable, { children }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx(VisuallyHiddenContentContextProvider, { scope: __scopeTooltip, isInside: true, children: /* @__PURE__ */ jsxRuntimeExports.jsx(Root$8, { id: context.contentId, role: "tooltip", children: ariaLabel || children }) })
+              /* @__PURE__ */ jsxRuntimeExports.jsx(VisuallyHiddenContentContextProvider, { scope: __scopeTooltip, isInside: true, children: /* @__PURE__ */ jsxRuntimeExports.jsx(Root$9, { id: context.contentId, role: "tooltip", children: ariaLabel || children }) })
             ]
           }
         )
@@ -22675,7 +22790,7 @@ var Trigger = TooltipTrigger;
 var Portal = TooltipPortal;
 var Content2 = TooltipContent;
 var Arrow2 = TooltipArrow;
-const s$g = Root2$6;
+const s$h = Root2$7;
 var classnames = { exports: {} };
 /*!
 	Copyright (c) 2018 Jed Watson.
@@ -22744,8 +22859,8 @@ const y$5 = /* @__PURE__ */ getDefaultExportFromCjs(classnamesExports);
 const o$o = { asChild: { type: "boolean" } };
 const t$p = { width: { type: "string", className: "rt-r-w", customProperties: ["--width"], responsive: true }, minWidth: { type: "string", className: "rt-r-min-w", customProperties: ["--min-width"], responsive: true }, maxWidth: { type: "string", className: "rt-r-max-w", customProperties: ["--max-width"], responsive: true } };
 const e$u = { height: { type: "string", className: "rt-r-h", customProperties: ["--height"], responsive: true }, minHeight: { type: "string", className: "rt-r-min-h", customProperties: ["--min-height"], responsive: true }, maxHeight: { type: "string", className: "rt-r-max-h", customProperties: ["--max-height"], responsive: true } };
-const r$x = ["1", "2", "3", "4"], s$f = { ...o$o, align: { type: "enum", className: "rt-r-align", values: ["start", "center"], default: "center" }, size: { type: "enum", className: "rt-r-size", values: r$x, default: "3", responsive: true }, width: t$p.width, minWidth: t$p.minWidth, maxWidth: { ...t$p.maxWidth, default: "600px" }, ...e$u };
-const o$n = ["gray", "gold", "bronze", "brown", "yellow", "amber", "orange", "tomato", "red", "ruby", "crimson", "pink", "plum", "purple", "violet", "iris", "indigo", "blue", "cyan", "teal", "jade", "green", "grass", "lime", "mint", "sky"], e$t = ["auto", "gray", "mauve", "slate", "sage", "olive", "sand"], r$w = { color: { type: "enum", values: o$n, default: void 0 } }, s$e = { color: { type: "enum", values: o$n, default: "" } };
+const r$x = ["1", "2", "3", "4"], s$g = { ...o$o, align: { type: "enum", className: "rt-r-align", values: ["start", "center"], default: "center" }, size: { type: "enum", className: "rt-r-size", values: r$x, default: "3", responsive: true }, width: t$p.width, minWidth: t$p.minWidth, maxWidth: { ...t$p.maxWidth, default: "600px" }, ...e$u };
+const o$n = ["gray", "gold", "bronze", "brown", "yellow", "amber", "orange", "tomato", "red", "ruby", "crimson", "pink", "plum", "purple", "violet", "iris", "indigo", "blue", "cyan", "teal", "jade", "green", "grass", "lime", "mint", "sky"], e$t = ["auto", "gray", "mauve", "slate", "sage", "olive", "sand"], r$w = { color: { type: "enum", values: o$n, default: void 0 } }, s$f = { color: { type: "enum", values: o$n, default: "" } };
 const o$m = { highContrast: { type: "boolean", className: "rt-high-contrast", default: void 0 } };
 const e$s = ["normal", "start", "end", "both"], r$v = { trim: { type: "enum", className: "rt-r-lt", values: e$s, responsive: true } };
 const e$r = ["left", "center", "right"], t$o = { align: { type: "enum", className: "rt-r-ta", values: e$r, responsive: true } };
@@ -22849,13 +22964,13 @@ function v$8(r2, ...m2) {
 const e$l = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "-1", "-2", "-3", "-4", "-5", "-6", "-7", "-8", "-9"], r$t = { m: { type: "enum | string", values: e$l, responsive: true, className: "rt-r-m", customProperties: ["--m"] }, mx: { type: "enum | string", values: e$l, responsive: true, className: "rt-r-mx", customProperties: ["--ml", "--mr"] }, my: { type: "enum | string", values: e$l, responsive: true, className: "rt-r-my", customProperties: ["--mt", "--mb"] }, mt: { type: "enum | string", values: e$l, responsive: true, className: "rt-r-mt", customProperties: ["--mt"] }, mr: { type: "enum | string", values: e$l, responsive: true, className: "rt-r-mr", customProperties: ["--mr"] }, mb: { type: "enum | string", values: e$l, responsive: true, className: "rt-r-mb", customProperties: ["--mb"] }, ml: { type: "enum | string", values: e$l, responsive: true, className: "rt-r-ml", customProperties: ["--ml"] } };
 const r$s = reactExports.forwardRef((p2, t2) => {
   const { children: e2, className: s2, asChild: a2, as: n2 = "h1", color: i, ...m2 } = v$8(p2, n$g, r$t);
-  return reactExports.createElement(Root$9, { "data-accent-color": i, ...m2, ref: t2, className: y$5("rt-Heading", s2) }, a2 ? e2 : reactExports.createElement(n2, null, e2));
+  return reactExports.createElement(Root$a, { "data-accent-color": i, ...m2, ref: t2, className: y$5("rt-Heading", s2) }, a2 ? e2 : reactExports.createElement(n2, null, e2));
 });
 r$s.displayName = "Heading";
 const m$a = ["span", "div", "label", "p"], a$s = ["1", "2", "3", "4", "5", "6", "7", "8", "9"], n$f = { as: { type: "enum", values: m$a, default: "span" }, ...o$o, size: { type: "enum", className: "rt-r-size", values: a$s, responsive: true }, ...t$n, ...t$o, ...r$v, ...e$p, ...r$u, ...r$w, ...o$m };
 const p$w = reactExports.forwardRef((t2, r2) => {
   const { children: e2, className: s2, asChild: m2, as: a2 = "span", color: n2, ...P2 } = v$8(t2, n$f, r$t);
-  return reactExports.createElement(Root$9, { "data-accent-color": n2, ...P2, ref: r2, className: y$5("rt-Text", s2) }, m2 ? e2 : reactExports.createElement(a2, null, e2));
+  return reactExports.createElement(Root$a, { "data-accent-color": n2, ...P2, ref: r2, className: y$5("rt-Text", s2) }, m2 ? e2 : reactExports.createElement(a2, null, e2));
 });
 p$w.displayName = "Text";
 function a$r(e2) {
@@ -22895,7 +23010,7 @@ function a$r(e2) {
   }
 }
 const e$k = ["none", "small", "medium", "large", "full"], r$r = { radius: { type: "enum", values: e$k, default: void 0 } };
-const t$m = ["solid", "translucent"], n$e = ["90%", "95%", "100%", "105%", "110%"], s$d = { hasBackground: { default: true }, appearance: { default: "inherit" }, accentColor: { values: o$n, default: "indigo" }, grayColor: { values: e$t, default: "auto" }, panelBackground: { values: t$m, default: "translucent" }, radius: { values: e$k, default: "medium" }, scaling: { values: n$e, default: "100%" } };
+const t$m = ["solid", "translucent"], n$e = ["90%", "95%", "100%", "105%", "110%"], s$e = { hasBackground: { default: true }, appearance: { default: "inherit" }, accentColor: { values: o$n, default: "indigo" }, grayColor: { values: e$t, default: "auto" }, panelBackground: { values: t$m, default: "translucent" }, radius: { values: e$k, default: "medium" }, scaling: { values: n$e, default: "100%" } };
 const d$4 = () => {
 }, P$6 = reactExports.createContext(void 0);
 function H$1() {
@@ -22906,7 +23021,7 @@ function H$1() {
 const R$3 = reactExports.forwardRef((a2, s2) => reactExports.useContext(P$6) === void 0 ? reactExports.createElement(Provider, { delayDuration: 200 }, reactExports.createElement(Provider$1, { dir: "ltr" }, reactExports.createElement(I$3, { ...a2, ref: s2 }))) : reactExports.createElement(A$3, { ...a2, ref: s2 }));
 R$3.displayName = "Theme";
 const I$3 = reactExports.forwardRef((a2, s2) => {
-  const { appearance: r2 = s$d.appearance.default, accentColor: c2 = s$d.accentColor.default, grayColor: l2 = s$d.grayColor.default, panelBackground: p2 = s$d.panelBackground.default, radius: n2 = s$d.radius.default, scaling: t2 = s$d.scaling.default, hasBackground: i = s$d.hasBackground.default, ...u2 } = a2, [h2, m2] = reactExports.useState(r2);
+  const { appearance: r2 = s$e.appearance.default, accentColor: c2 = s$e.accentColor.default, grayColor: l2 = s$e.grayColor.default, panelBackground: p2 = s$e.panelBackground.default, radius: n2 = s$e.radius.default, scaling: t2 = s$e.scaling.default, hasBackground: i = s$e.hasBackground.default, ...u2 } = a2, [h2, m2] = reactExports.useState(r2);
   reactExports.useEffect(() => m2(r2), [r2]);
   const [y2, g2] = reactExports.useState(c2);
   reactExports.useEffect(() => g2(c2), [c2]);
@@ -22921,7 +23036,7 @@ const I$3 = reactExports.forwardRef((a2, s2) => {
 });
 I$3.displayName = "ThemeRoot";
 const A$3 = reactExports.forwardRef((a2, s2) => {
-  const r2 = reactExports.useContext(P$6), { asChild: c2, isRoot: l2, hasBackground: p2, appearance: n2 = (r2 == null ? void 0 : r2.appearance) ?? s$d.appearance.default, accentColor: t2 = (r2 == null ? void 0 : r2.accentColor) ?? s$d.accentColor.default, grayColor: i = (r2 == null ? void 0 : r2.resolvedGrayColor) ?? s$d.grayColor.default, panelBackground: u2 = (r2 == null ? void 0 : r2.panelBackground) ?? s$d.panelBackground.default, radius: h2 = (r2 == null ? void 0 : r2.radius) ?? s$d.radius.default, scaling: m2 = (r2 == null ? void 0 : r2.scaling) ?? s$d.scaling.default, onAppearanceChange: y2 = d$4, onAccentColorChange: g2 = d$4, onGrayColorChange: v2 = d$4, onPanelBackgroundChange: C2 = d$4, onRadiusChange: k2 = d$4, onScalingChange: f2 = d$4, ...B3 } = a2, x2 = c2 ? Root$9 : "div", T2 = i === "auto" ? a$r(t2) : i, b2 = a2.appearance === "light" || a2.appearance === "dark", S2 = p2 === void 0 ? l2 || b2 : p2;
+  const r2 = reactExports.useContext(P$6), { asChild: c2, isRoot: l2, hasBackground: p2, appearance: n2 = (r2 == null ? void 0 : r2.appearance) ?? s$e.appearance.default, accentColor: t2 = (r2 == null ? void 0 : r2.accentColor) ?? s$e.accentColor.default, grayColor: i = (r2 == null ? void 0 : r2.resolvedGrayColor) ?? s$e.grayColor.default, panelBackground: u2 = (r2 == null ? void 0 : r2.panelBackground) ?? s$e.panelBackground.default, radius: h2 = (r2 == null ? void 0 : r2.radius) ?? s$e.radius.default, scaling: m2 = (r2 == null ? void 0 : r2.scaling) ?? s$e.scaling.default, onAppearanceChange: y2 = d$4, onAccentColorChange: g2 = d$4, onGrayColorChange: v2 = d$4, onPanelBackgroundChange: C2 = d$4, onRadiusChange: k2 = d$4, onScalingChange: f2 = d$4, ...B3 } = a2, x2 = c2 ? Root$a : "div", T2 = i === "auto" ? a$r(t2) : i, b2 = a2.appearance === "light" || a2.appearance === "dark", S2 = p2 === void 0 ? l2 || b2 : p2;
   return reactExports.createElement(P$6.Provider, { value: reactExports.useMemo(() => ({ appearance: n2, accentColor: t2, grayColor: i, resolvedGrayColor: T2, panelBackground: u2, radius: h2, scaling: m2, onAppearanceChange: y2, onAccentColorChange: g2, onGrayColorChange: v2, onPanelBackgroundChange: C2, onRadiusChange: k2, onScalingChange: f2 }), [n2, t2, i, T2, u2, h2, m2, y2, g2, v2, C2, k2, f2]) }, reactExports.createElement(x2, { "data-is-root-theme": l2 ? "true" : "false", "data-accent-color": t2, "data-gray-color": T2, "data-has-background": S2 ? "true" : "false", "data-panel-background": u2, "data-radius": h2, "data-scaling": m2, ref: s2, ...B3, className: y$5("radix-themes", { light: n2 === "light", dark: n2 === "dark" }, B3.className) }));
 });
 A$3.displayName = "ThemeImpl";
@@ -22929,10 +23044,10 @@ const a$q = (t2) => {
   if (!reactExports.isValidElement(t2)) throw Error(`Expected a single React Element child, but got: ${reactExports.Children.toArray(t2).map((e2) => typeof e2 == "object" && "type" in e2 && typeof e2.type == "string" ? e2.type : typeof e2).join(", ")}`);
   return t2;
 };
-const s$c = reactExports.forwardRef(({ children: t2, ...o2 }, i) => reactExports.createElement(Trigger2, { ...o2, ref: i, asChild: true }, a$q(t2)));
-s$c.displayName = "AlertDialog.Trigger";
+const s$d = reactExports.forwardRef(({ children: t2, ...o2 }, i) => reactExports.createElement(Trigger2, { ...o2, ref: i, asChild: true }, a$q(t2)));
+s$d.displayName = "AlertDialog.Trigger";
 const p$v = reactExports.forwardRef(({ align: t2, ...o2 }, i) => {
-  const { align: P2, ...c2 } = s$f, { className: f2 } = v$8({ align: t2 }, { align: P2 }), { className: C2, forceMount: d2, container: y2, ...v2 } = v$8(o2, c2);
+  const { align: P2, ...c2 } = s$g, { className: f2 } = v$8({ align: t2 }, { align: P2 }), { className: C2, forceMount: d2, container: y2, ...v2 } = v$8(o2, c2);
   return reactExports.createElement(Portal2$2, { container: y2, forceMount: d2 }, reactExports.createElement(R$3, { asChild: true }, reactExports.createElement(Overlay2, { className: "rt-BaseDialogOverlay rt-AlertDialogOverlay" }, reactExports.createElement("div", { className: "rt-BaseDialogScroll rt-AlertDialogScroll" }, reactExports.createElement("div", { className: `rt-BaseDialogScrollPadding rt-AlertDialogScrollPadding ${f2}` }, reactExports.createElement(Content2$7, { ...v2, ref: i, className: y$5("rt-BaseDialogContent", "rt-AlertDialogContent", C2) }))))));
 });
 p$v.displayName = "AlertDialog.Content";
@@ -22944,7 +23059,7 @@ const D$1 = reactExports.forwardRef(({ children: t2, ...o2 }, i) => reactExports
 D$1.displayName = "AlertDialog.Action";
 const A$2 = reactExports.forwardRef(({ children: t2, ...o2 }, i) => reactExports.createElement(Cancel, { ...o2, ref: i, asChild: true }, a$q(t2)));
 A$2.displayName = "AlertDialog.Cancel";
-const s$b = ["1", "2", "3", "4", "5", "6", "7", "8", "9"], a$p = ["solid", "soft"], p$u = { ...o$o, size: { type: "enum", className: "rt-r-size", values: s$b, default: "3", responsive: true }, variant: { type: "enum", className: "rt-variant", values: a$p, default: "soft" }, ...s$e, ...o$m, ...r$r, fallback: { type: "ReactNode", required: true } };
+const s$c = ["1", "2", "3", "4", "5", "6", "7", "8", "9"], a$p = ["solid", "soft"], p$u = { ...o$o, size: { type: "enum", className: "rt-r-size", values: s$c, default: "3", responsive: true }, variant: { type: "enum", className: "rt-variant", values: a$p, default: "soft" }, ...s$f, ...o$m, ...r$r, fallback: { type: "ReactNode", required: true } };
 function d$3(i, e2) {
   const { asChild: r2, children: c2 } = i;
   if (!r2) return typeof e2 == "function" ? e2(c2) : e2;
@@ -22964,19 +23079,19 @@ const n$d = reactExports.forwardRef(({ fallback: t2, ...e2 }, o2) => {
   } }));
 });
 n$d.displayName = "AvatarImpl";
-const t$l = ["1", "2", "3"], a$o = ["solid", "soft", "surface", "outline"], p$t = { ...o$o, size: { type: "enum", className: "rt-r-size", values: t$l, default: "1", responsive: true }, variant: { type: "enum", className: "rt-variant", values: a$o, default: "soft" }, ...s$e, ...o$m, ...r$r };
+const t$l = ["1", "2", "3"], a$o = ["solid", "soft", "surface", "outline"], p$t = { ...o$o, size: { type: "enum", className: "rt-r-size", values: t$l, default: "1", responsive: true }, variant: { type: "enum", className: "rt-variant", values: a$o, default: "soft" }, ...s$f, ...o$m, ...r$r };
 const e$j = reactExports.forwardRef((r2, p2) => {
-  const { asChild: t2, className: s2, color: a2, radius: m2, ...n2 } = v$8(r2, p$t, r$t), d2 = t2 ? Root$9 : "span";
+  const { asChild: t2, className: s2, color: a2, radius: m2, ...n2 } = v$8(r2, p$t, r$t), d2 = t2 ? Root$a : "span";
   return reactExports.createElement(d2, { "data-accent-color": a2, "data-radius": m2, ...n2, ref: p2, className: y$5("rt-reset", "rt-Badge", s2) });
 });
 e$j.displayName = "Badge";
 const e$i = reactExports.forwardRef((t2, p2) => {
-  const { asChild: r2, children: s2, className: m2, ...l2 } = t2, c2 = r2 ? Root$9 : "blockquote";
+  const { asChild: r2, children: s2, className: m2, ...l2 } = t2, c2 = r2 ? Root$a : "blockquote";
   return reactExports.createElement(p$w, { asChild: true, ...l2, ref: p2, className: y$5("rt-Blockquote", m2) }, reactExports.createElement(c2, null, s2));
 });
 e$i.displayName = "Blockquote";
-const e$h = Root$9;
-const s$a = ["div", "span"], p$s = ["none", "inline", "inline-block", "block"], o$l = { as: { type: "enum", values: s$a, default: "div" }, ...o$o, display: { type: "enum", className: "rt-r-display", values: p$s, responsive: true } };
+const e$h = Root$a;
+const s$b = ["div", "span"], p$s = ["none", "inline", "inline-block", "block"], o$l = { as: { type: "enum", values: s$b, default: "div" }, ...o$o, display: { type: "enum", className: "rt-r-display", values: p$s, responsive: true } };
 const e$g = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"], p$r = { p: { type: "enum | string", className: "rt-r-p", customProperties: ["--p"], values: e$g, responsive: true }, px: { type: "enum | string", className: "rt-r-px", customProperties: ["--pl", "--pr"], values: e$g, responsive: true }, py: { type: "enum | string", className: "rt-r-py", customProperties: ["--pt", "--pb"], values: e$g, responsive: true }, pt: { type: "enum | string", className: "rt-r-pt", customProperties: ["--pt"], values: e$g, responsive: true }, pr: { type: "enum | string", className: "rt-r-pr", customProperties: ["--pr"], values: e$g, responsive: true }, pb: { type: "enum | string", className: "rt-r-pb", customProperties: ["--pb"], values: e$g, responsive: true }, pl: { type: "enum | string", className: "rt-r-pl", customProperties: ["--pl"], values: e$g, responsive: true } };
 const r$q = ["visible", "hidden", "clip", "scroll", "auto"], i$j = ["static", "relative", "absolute", "fixed", "sticky"], e$f = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "-1", "-2", "-3", "-4", "-5", "-6", "-7", "-8", "-9"], p$q = ["0", "1"], n$c = ["0", "1"], u$8 = { ...p$r, ...t$p, ...e$u, position: { type: "enum", className: "rt-r-position", values: i$j, responsive: true }, inset: { type: "enum | string", className: "rt-r-inset", customProperties: ["--inset"], values: e$f, responsive: true }, top: { type: "enum | string", className: "rt-r-top", customProperties: ["--top"], values: e$f, responsive: true }, right: { type: "enum | string", className: "rt-r-right", customProperties: ["--right"], values: e$f, responsive: true }, bottom: { type: "enum | string", className: "rt-r-bottom", customProperties: ["--bottom"], values: e$f, responsive: true }, left: { type: "enum | string", className: "rt-r-left", customProperties: ["--left"], values: e$f, responsive: true }, overflow: { type: "enum", className: "rt-r-overflow", values: r$q, responsive: true }, overflowX: { type: "enum", className: "rt-r-ox", values: r$q, responsive: true }, overflowY: { type: "enum", className: "rt-r-oy", values: r$q, responsive: true }, flexBasis: { type: "string", className: "rt-r-fb", customProperties: ["--flex-basis"], responsive: true }, flexShrink: { type: "enum | string", className: "rt-r-fs", customProperties: ["--flex-shrink"], values: p$q, responsive: true }, flexGrow: { type: "enum | string", className: "rt-r-fg", customProperties: ["--flex-grow"], values: n$c, responsive: true }, gridArea: { type: "string", className: "rt-r-ga", customProperties: ["--grid-area"], responsive: true }, gridColumn: { type: "string", className: "rt-r-gc", customProperties: ["--grid-column"], responsive: true }, gridColumnStart: { type: "string", className: "rt-r-gcs", customProperties: ["--grid-column-start"], responsive: true }, gridColumnEnd: { type: "string", className: "rt-r-gce", customProperties: ["--grid-column-end"], responsive: true }, gridRow: { type: "string", className: "rt-r-gr", customProperties: ["--grid-row"], responsive: true }, gridRowStart: { type: "string", className: "rt-r-grs", customProperties: ["--grid-row-start"], responsive: true }, gridRowEnd: { type: "string", className: "rt-r-gre", customProperties: ["--grid-row-end"], responsive: true } };
 const p$p = reactExports.forwardRef((r2, s2) => {
@@ -22984,7 +23099,7 @@ const p$p = reactExports.forwardRef((r2, s2) => {
   return reactExports.createElement(e2 ? e$h : m2, { ...a2, ref: s2, className: y$5("rt-Box", t2) });
 });
 p$p.displayName = "Box";
-const t$k = ["1", "2", "3", "4"], a$n = ["classic", "solid", "soft", "surface", "outline", "ghost"], i$i = { ...o$o, size: { type: "enum", className: "rt-r-size", values: t$k, default: "2", responsive: true }, variant: { type: "enum", className: "rt-variant", values: a$n, default: "solid" }, ...s$e, ...o$m, ...r$r, loading: { type: "boolean", className: "rt-loading", default: false } };
+const t$k = ["1", "2", "3", "4"], a$n = ["classic", "solid", "soft", "surface", "outline", "ghost"], i$i = { ...o$o, size: { type: "enum", className: "rt-r-size", values: t$k, default: "2", responsive: true }, variant: { type: "enum", className: "rt-variant", values: a$n, default: "solid" }, ...s$f, ...o$m, ...r$r, loading: { type: "boolean", className: "rt-loading", default: false } };
 const e$e = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"], p$o = { gap: { type: "enum | string", className: "rt-r-gap", customProperties: ["--gap"], values: e$e, responsive: true }, gapX: { type: "enum | string", className: "rt-r-cg", customProperties: ["--column-gap"], values: e$e, responsive: true }, gapY: { type: "enum | string", className: "rt-r-rg", customProperties: ["--row-gap"], values: e$e, responsive: true } };
 const t$j = ["div", "span"], p$n = ["none", "inline-flex", "flex"], a$m = ["row", "column", "row-reverse", "column-reverse"], o$k = ["start", "center", "end", "baseline", "stretch"], n$b = ["start", "center", "end", "between"], l$7 = ["nowrap", "wrap", "wrap-reverse"], u$7 = { as: { type: "enum", values: t$j, default: "div" }, ...o$o, display: { type: "enum", className: "rt-r-display", values: p$n, responsive: true }, direction: { type: "enum", className: "rt-r-fd", values: a$m, responsive: true }, align: { type: "enum", className: "rt-r-ai", values: o$k, responsive: true }, justify: { type: "enum", className: "rt-r-jc", values: n$b, parseValue: f$c, responsive: true }, wrap: { type: "enum", className: "rt-r-fw", values: l$7, responsive: true }, ...p$o };
 function f$c(e2) {
@@ -22995,16 +23110,16 @@ const p$m = reactExports.forwardRef((r2, e2) => {
   return reactExports.createElement(t2 ? e$h : m2, { ...l2, ref: e2, className: y$5("rt-Flex", s2) });
 });
 p$m.displayName = "Flex";
-const e$d = ["1", "2", "3"], s$9 = { size: { type: "enum", className: "rt-r-size", values: e$d, default: "2", responsive: true }, loading: { type: "boolean", default: true } };
-const s$8 = reactExports.forwardRef((i, o2) => {
-  const { className: a2, children: e2, loading: t2, ...m2 } = v$8(i, s$9, r$t);
+const e$d = ["1", "2", "3"], s$a = { size: { type: "enum", className: "rt-r-size", values: e$d, default: "2", responsive: true }, loading: { type: "boolean", default: true } };
+const s$9 = reactExports.forwardRef((i, o2) => {
+  const { className: a2, children: e2, loading: t2, ...m2 } = v$8(i, s$a, r$t);
   if (!t2) return e2;
   const r2 = reactExports.createElement("span", { ...m2, ref: o2, className: y$5("rt-Spinner", a2) }, reactExports.createElement("span", { className: "rt-SpinnerLeaf" }), reactExports.createElement("span", { className: "rt-SpinnerLeaf" }), reactExports.createElement("span", { className: "rt-SpinnerLeaf" }), reactExports.createElement("span", { className: "rt-SpinnerLeaf" }), reactExports.createElement("span", { className: "rt-SpinnerLeaf" }), reactExports.createElement("span", { className: "rt-SpinnerLeaf" }), reactExports.createElement("span", { className: "rt-SpinnerLeaf" }), reactExports.createElement("span", { className: "rt-SpinnerLeaf" }));
   return e2 === void 0 ? r2 : reactExports.createElement(p$m, { asChild: true, position: "relative", align: "center", justify: "center" }, reactExports.createElement("span", null, reactExports.createElement("span", { "aria-hidden": true, style: { display: "contents", visibility: "hidden" }, inert: void 0 }, e2), reactExports.createElement(p$m, { asChild: true, align: "center", justify: "center", position: "absolute", inset: "0" }, reactExports.createElement("span", null, r2))));
 });
-s$8.displayName = "Spinner";
-const d$2 = Root$8;
-function s$7(e2, t2) {
+s$9.displayName = "Spinner";
+const d$2 = Root$9;
+function s$8(e2, t2) {
   if (e2 !== void 0) return typeof e2 == "string" ? t2(e2) : Object.fromEntries(Object.entries(e2).map(([n2, o2]) => [n2, t2(o2)]));
 }
 function p$l(e2) {
@@ -23022,15 +23137,15 @@ function r$p(e2) {
   }
 }
 const n$a = reactExports.forwardRef((t2, p2) => {
-  const { size: i = i$i.size.default } = t2, { className: a2, children: e2, asChild: m2, color: d2, radius: l2, disabled: s2 = t2.loading, ...u2 } = v$8(t2, i$i, r$t), f2 = m2 ? Root$9 : "button";
-  return reactExports.createElement(f2, { "data-disabled": s2 || void 0, "data-accent-color": d2, "data-radius": l2, ...u2, ref: p2, className: y$5("rt-reset", "rt-BaseButton", a2), disabled: s2 }, t2.loading ? reactExports.createElement(reactExports.Fragment, null, reactExports.createElement("span", { style: { display: "contents", visibility: "hidden" }, "aria-hidden": true }, e2), reactExports.createElement(d$2, null, e2), reactExports.createElement(p$m, { asChild: true, align: "center", justify: "center", position: "absolute", inset: "0" }, reactExports.createElement("span", null, reactExports.createElement(s$8, { size: s$7(i, r$p) })))) : e2);
+  const { size: i = i$i.size.default } = t2, { className: a2, children: e2, asChild: m2, color: d2, radius: l2, disabled: s2 = t2.loading, ...u2 } = v$8(t2, i$i, r$t), f2 = m2 ? Root$a : "button";
+  return reactExports.createElement(f2, { "data-disabled": s2 || void 0, "data-accent-color": d2, "data-radius": l2, ...u2, ref: p2, className: y$5("rt-reset", "rt-BaseButton", a2), disabled: s2 }, t2.loading ? reactExports.createElement(reactExports.Fragment, null, reactExports.createElement("span", { style: { display: "contents", visibility: "hidden" }, "aria-hidden": true }, e2), reactExports.createElement(d$2, null, e2), reactExports.createElement(p$m, { asChild: true, align: "center", justify: "center", position: "absolute", inset: "0" }, reactExports.createElement("span", null, reactExports.createElement(s$9, { size: s$8(i, r$p) })))) : e2);
 });
 n$a.displayName = "BaseButton";
 const o$j = reactExports.forwardRef(({ className: e2, ...n2 }, r2) => reactExports.createElement(n$a, { ...n2, ref: r2, className: y$5("rt-Button", e2) }));
 o$j.displayName = "Button";
-const t$i = ["1", "2", "3"], r$o = ["soft", "surface", "outline"], a$l = { ...o$o, size: { type: "enum", className: "rt-r-size", values: t$i, default: "2", responsive: true }, variant: { type: "enum", className: "rt-variant", values: r$o, default: "soft" }, ...s$e, ...o$m };
+const t$i = ["1", "2", "3"], r$o = ["soft", "surface", "outline"], a$l = { ...o$o, size: { type: "enum", className: "rt-r-size", values: t$i, default: "2", responsive: true }, variant: { type: "enum", className: "rt-variant", values: r$o, default: "soft" }, ...s$f, ...o$m };
 const a$k = reactExports.createContext({}), n$9 = reactExports.forwardRef((t2, l2) => {
-  const { size: e2 = a$l.size.default } = t2, { asChild: r2, children: C2, className: i, color: c2, ...f2 } = v$8(t2, a$l, r$t), P2 = r2 ? Root$9 : "div";
+  const { size: e2 = a$l.size.default } = t2, { asChild: r2, children: C2, className: i, color: c2, ...f2 } = v$8(t2, a$l, r$t), P2 = r2 ? Root$a : "div";
   return reactExports.createElement(P2, { "data-accent-color": c2, ...f2, className: y$5("rt-CalloutRoot", i), ref: l2 }, reactExports.createElement(a$k.Provider, { value: reactExports.useMemo(() => ({ size: e2 }), [e2]) }, C2));
 });
 n$9.displayName = "Callout.Root";
@@ -23038,12 +23153,12 @@ const m$8 = reactExports.forwardRef(({ className: t2, ...l2 }, e2) => reactExpor
 m$8.displayName = "Callout.Icon";
 const u$6 = reactExports.forwardRef(({ className: t2, ...l2 }, e2) => {
   const { size: r2 } = reactExports.useContext(a$k);
-  return reactExports.createElement(p$w, { as: "p", size: s$7(r2, p$l), ...l2, asChild: false, ref: e2, className: y$5("rt-CalloutText", t2) });
+  return reactExports.createElement(p$w, { as: "p", size: s$8(r2, p$l), ...l2, asChild: false, ref: e2, className: y$5("rt-CalloutText", t2) });
 });
 u$6.displayName = "Callout.Text";
 const e$c = ["1", "2", "3", "4", "5"], r$n = ["surface", "classic", "ghost"], a$j = { ...o$o, size: { type: "enum", className: "rt-r-size", values: e$c, default: "1", responsive: true }, variant: { type: "enum", className: "rt-variant", values: r$n, default: "surface" } };
 const o$i = reactExports.forwardRef((p2, e2) => {
-  const { asChild: t2, className: s2, ...a2 } = v$8(p2, a$j, r$t), m2 = t2 ? Root$9 : "div";
+  const { asChild: t2, className: s2, ...a2 } = v$8(p2, a$j, r$t), m2 = t2 ? Root$a : "div";
   return reactExports.createElement(m2, { ref: e2, ...a2, className: y$5("rt-reset", "rt-BaseCard", "rt-Card", s2) });
 });
 o$i.displayName = "Card";
@@ -23069,17 +23184,17 @@ const B$2 = "CheckboxGroupIndicator", G$4 = reactExports.forwardRef((r2, n2) => 
 });
 G$4.displayName = B$2;
 const H = v$7, K = f$b, X = G$4;
-const a$i = ["div", "span"], n$8 = ["none", "inline-grid", "grid"], p$k = ["1", "2", "3", "4", "5", "6", "7", "8", "9"], u$5 = ["1", "2", "3", "4", "5", "6", "7", "8", "9"], i$h = ["row", "column", "dense", "row-dense", "column-dense"], l$6 = ["start", "center", "end", "baseline", "stretch"], f$a = ["start", "center", "end", "between"], s$6 = { as: { type: "enum", values: a$i, default: "div" }, ...o$o, display: { type: "enum", className: "rt-r-display", values: n$8, responsive: true }, areas: { type: "string", className: "rt-r-gta", customProperties: ["--grid-template-areas"], responsive: true }, columns: { type: "enum | string", className: "rt-r-gtc", customProperties: ["--grid-template-columns"], values: p$k, parseValue: r$m, responsive: true }, rows: { type: "enum | string", className: "rt-r-gtr", customProperties: ["--grid-template-rows"], values: u$5, parseValue: r$m, responsive: true }, flow: { type: "enum", className: "rt-r-gaf", values: i$h, responsive: true }, align: { type: "enum", className: "rt-r-ai", values: l$6, responsive: true }, justify: { type: "enum", className: "rt-r-jc", values: f$a, parseValue: m$7, responsive: true }, ...p$o };
+const a$i = ["div", "span"], n$8 = ["none", "inline-grid", "grid"], p$k = ["1", "2", "3", "4", "5", "6", "7", "8", "9"], u$5 = ["1", "2", "3", "4", "5", "6", "7", "8", "9"], i$h = ["row", "column", "dense", "row-dense", "column-dense"], l$6 = ["start", "center", "end", "baseline", "stretch"], f$a = ["start", "center", "end", "between"], s$7 = { as: { type: "enum", values: a$i, default: "div" }, ...o$o, display: { type: "enum", className: "rt-r-display", values: n$8, responsive: true }, areas: { type: "string", className: "rt-r-gta", customProperties: ["--grid-template-areas"], responsive: true }, columns: { type: "enum | string", className: "rt-r-gtc", customProperties: ["--grid-template-columns"], values: p$k, parseValue: r$m, responsive: true }, rows: { type: "enum | string", className: "rt-r-gtr", customProperties: ["--grid-template-rows"], values: u$5, parseValue: r$m, responsive: true }, flow: { type: "enum", className: "rt-r-gaf", values: i$h, responsive: true }, align: { type: "enum", className: "rt-r-ai", values: l$6, responsive: true }, justify: { type: "enum", className: "rt-r-jc", values: f$a, parseValue: m$7, responsive: true }, ...p$o };
 function r$m(e2) {
-  return s$6.columns.values.includes(e2) ? e2 : (e2 == null ? void 0 : e2.match(/^\d+$/)) ? `repeat(${e2}, minmax(0, 1fr))` : e2;
+  return s$7.columns.values.includes(e2) ? e2 : (e2 == null ? void 0 : e2.match(/^\d+$/)) ? `repeat(${e2}, minmax(0, 1fr))` : e2;
 }
 function m$7(e2) {
   return e2 === "between" ? "space-between" : e2;
 }
-const a$h = ["1", "2", "3"], t$h = ["surface", "classic"], p$j = { ...o$o, size: { type: "enum", className: "rt-r-size", values: a$h, default: "2", responsive: true }, variant: { type: "enum", className: "rt-variant", values: t$h, default: "surface" }, ...r$w, ...o$m, columns: { ...s$6.columns, default: "repeat(auto-fit, minmax(200px, 1fr))" }, gap: { ...s$6.gap, default: "4" } };
+const a$h = ["1", "2", "3"], t$h = ["surface", "classic"], p$j = { ...o$o, size: { type: "enum", className: "rt-r-size", values: a$h, default: "2", responsive: true }, variant: { type: "enum", className: "rt-variant", values: t$h, default: "surface" }, ...r$w, ...o$m, columns: { ...s$7.columns, default: "repeat(auto-fit, minmax(200px, 1fr))" }, gap: { ...s$7.gap, default: "4" } };
 const r$l = ["1", "2", "3"], o$h = ["classic", "surface", "soft"], t$g = { size: { type: "enum", className: "rt-r-size", values: r$l, default: "2", responsive: true }, variant: { type: "enum", className: "rt-variant", values: o$h, default: "surface" }, ...r$w, ...o$m };
 const o$g = reactExports.forwardRef((p2, s2) => {
-  const { className: t2, asChild: e2, as: i = "div", ...m2 } = v$8(p2, s$6, u$8, r$t);
+  const { className: t2, asChild: e2, as: i = "div", ...m2 } = v$8(p2, s$7, u$8, r$t);
   return reactExports.createElement(e2 ? e$h : i, { ...m2, ref: s2, className: y$5("rt-Grid", t2) });
 });
 o$g.displayName = "Grid";
@@ -23122,9 +23237,9 @@ const c$3 = reactExports.forwardRef((p2, i) => {
   return reactExports.createElement(Root$6, { "data-accent-color": h2, ...n2, defaultChecked: o2, checked: r2, onCheckedChange: k2, asChild: false, ref: i, className: y$5("rt-reset", "rt-BaseCheckboxRoot", "rt-CheckboxRoot", s2) }, reactExports.createElement(Indicator$1, { asChild: true, className: "rt-BaseCheckboxIndicator rt-CheckboxIndicator" }, reactExports.createElement(r2 === "indeterminate" ? r$k : t$f, null)));
 });
 c$3.displayName = "Checkbox";
-const a$g = ["1", "2", "3", "4", "5", "6", "7", "8", "9"], i$e = ["solid", "soft", "outline", "ghost"], f$8 = { ...o$o, size: { type: "enum", className: "rt-r-size", values: a$g, responsive: true }, variant: { type: "enum", className: "rt-variant", values: i$e, default: "soft" }, ...t$n, ...s$e, ...o$m, ...e$p, ...r$u };
+const a$g = ["1", "2", "3", "4", "5", "6", "7", "8", "9"], i$e = ["solid", "soft", "outline", "ghost"], f$8 = { ...o$o, size: { type: "enum", className: "rt-r-size", values: a$g, responsive: true }, variant: { type: "enum", className: "rt-variant", values: i$e, default: "soft" }, ...t$n, ...s$f, ...o$m, ...e$p, ...r$u };
 const p$i = reactExports.forwardRef((o2, t2) => {
-  const { asChild: s2, className: m2, color: e2, ...d2 } = v$8(o2, f$8, r$t), n2 = o2.variant === "ghost" ? e2 || void 0 : e2, a2 = s2 ? Root$9 : "code";
+  const { asChild: s2, className: m2, color: e2, ...d2 } = v$8(o2, f$8, r$t), n2 = o2.variant === "ghost" ? e2 || void 0 : e2, a2 = s2 ? Root$a : "code";
   return reactExports.createElement(a2, { "data-accent-color": n2, ...d2, ref: t2, className: y$5("rt-reset", "rt-Code", m2) });
 });
 p$i.displayName = "Code";
@@ -23136,7 +23251,7 @@ function i$d(e2) {
   return e2 === "left" ? "start" : e2 === "right" ? "end" : e2;
 }
 const p$g = reactExports.forwardRef(({ width: n2, minWidth: s2, maxWidth: i, height: m2, minHeight: a2, maxHeight: f2, ...P2 }, l2) => {
-  const { asChild: r2, children: C2, className: c2, ...y2 } = v$8(P2, n$7, u$8, r$t), { className: d2, style: h2 } = v$8({ width: n2, minWidth: s2, maxWidth: i, height: m2, minHeight: a2, maxHeight: f2 }, t$p, e$u), u2 = r2 ? Root$9 : "div";
+  const { asChild: r2, children: C2, className: c2, ...y2 } = v$8(P2, n$7, u$8, r$t), { className: d2, style: h2 } = v$8({ width: n2, minWidth: s2, maxWidth: i, height: m2, minHeight: a2, maxHeight: f2 }, t$p, e$u), u2 = r2 ? Root$a : "div";
   return reactExports.createElement(u2, { ...y2, ref: l2, className: y$5("rt-Container", c2) }, d$3({ asChild: r2, children: C2 }, (v2) => reactExports.createElement("div", { className: y$5("rt-ContainerInner", d2), style: h2 }, v2)));
 });
 p$g.displayName = "Container";
@@ -23156,6 +23271,8 @@ const c$2 = reactExports.forwardRef((n2, S2) => {
 });
 c$2.displayName = "ScrollArea";
 const o$f = ["1", "2"], r$g = ["solid", "soft"], n$6 = { size: { type: "enum", className: "rt-r-size", values: o$f, default: "2", responsive: true }, variant: { type: "enum", className: "rt-variant", values: r$g, default: "solid" }, ...r$w, ...o$m }, a$d = { ...o$o, ...r$w }, i$c = { ...r$w }, p$f = { ...r$w };
+const h$2 = (t2) => reactExports.createElement(Root2$5, { ...t2 });
+h$2.displayName = "ContextMenu.Root";
 const S$2 = reactExports.forwardRef(({ children: t2, ...n2 }, o2) => reactExports.createElement(Trigger$6, { ...n2, ref: o2, asChild: true }, a$q(t2)));
 S$2.displayName = "ContextMenu.Trigger";
 const g$3 = reactExports.createContext({}), v$5 = reactExports.forwardRef((t2, n2) => {
@@ -23196,7 +23313,7 @@ const k = reactExports.forwardRef((t2, n2) => {
 k.displayName = "ContextMenu.SubContent";
 const W = reactExports.forwardRef(({ className: t2, ...n2 }, o2) => reactExports.createElement(Separator2$1, { ...n2, asChild: false, ref: o2, className: y$5("rt-BaseMenuSeparator", "rt-ContextMenuSeparator", t2) }));
 W.displayName = "ContextMenu.Separator";
-const s$5 = ["start", "center", "end", "baseline", "stretch"], i$b = ["horizontal", "vertical"], a$c = ["1", "2", "3"], n$5 = { orientation: { type: "enum", className: "rt-r-orientation", values: i$b, default: "horizontal", responsive: true }, size: { type: "enum", className: "rt-r-size", values: a$c, default: "2", responsive: true }, trim: { ...r$v.trim, className: "rt-r-trim" } }, p$e = { align: { type: "enum", className: "rt-r-ai", values: s$5, responsive: true } }, m$6 = { ...t$p, ...r$w, ...o$m };
+const s$6 = ["start", "center", "end", "baseline", "stretch"], i$b = ["horizontal", "vertical"], a$c = ["1", "2", "3"], n$5 = { orientation: { type: "enum", className: "rt-r-orientation", values: i$b, default: "horizontal", responsive: true }, size: { type: "enum", className: "rt-r-size", values: a$c, default: "2", responsive: true }, trim: { ...r$v.trim, className: "rt-r-trim" } }, p$e = { align: { type: "enum", className: "rt-r-ai", values: s$6, responsive: true } }, m$6 = { ...t$p, ...r$w, ...o$m };
 const i$a = reactExports.forwardRef((a2, e2) => {
   const { className: s2, ...o2 } = v$8(a2, n$5, r$t);
   return reactExports.createElement(p$w, { asChild: true }, reactExports.createElement("dl", { ...o2, ref: e2, className: y$5("rt-DataListRoot", s2) }));
@@ -23214,10 +23331,12 @@ const L$1 = reactExports.forwardRef((a2, e2) => {
 L$1.displayName = "DataList.Label";
 const l$3 = reactExports.forwardRef(({ children: a2, className: e2, ...s2 }, o2) => reactExports.createElement("dd", { ...s2, ref: o2, className: y$5(e2, "rt-DataListValue") }, a2));
 l$3.displayName = "DataList.Value";
+const s$5 = (e2) => reactExports.createElement(Root$8, { ...e2, modal: true });
+s$5.displayName = "Dialog.Root";
 const n$4 = reactExports.forwardRef(({ children: e2, ...i }, r2) => reactExports.createElement(Trigger$7, { ...i, ref: r2, asChild: true }, a$q(e2)));
 n$4.displayName = "Dialog.Trigger";
 const p$d = reactExports.forwardRef(({ align: e2, ...i }, r2) => {
-  const { align: P2, ...f2 } = s$f, { className: C2 } = v$8({ align: e2 }, { align: P2 }), { className: d2, forceMount: c2, container: y2, ...T2 } = v$8(i, f2);
+  const { align: P2, ...f2 } = s$g, { className: C2 } = v$8({ align: e2 }, { align: P2 }), { className: d2, forceMount: c2, container: y2, ...T2 } = v$8(i, f2);
   return reactExports.createElement(Portal$5, { container: y2, forceMount: c2 }, reactExports.createElement(R$3, { asChild: true }, reactExports.createElement(Overlay, { className: "rt-BaseDialogOverlay rt-DialogOverlay" }, reactExports.createElement("div", { className: "rt-BaseDialogScroll rt-DialogScroll" }, reactExports.createElement("div", { className: `rt-BaseDialogScrollPadding rt-DialogScrollPadding ${C2}` }, reactExports.createElement(Content$2, { ...T2, ref: r2, className: y$5("rt-BaseDialogContent", "rt-DialogContent", d2) }))))));
 });
 p$d.displayName = "Dialog.Content";
@@ -23269,7 +23388,7 @@ const B = reactExports.forwardRef(({ className: e2, ...n2 }, r2) => reactExports
 B.displayName = "DropdownMenu.Separator";
 const t$c = { ...o$o, ...e$p, ...r$u };
 const e$a = reactExports.forwardRef((p2, m2) => {
-  const { asChild: r2, className: t2, ...s2 } = v$8(p2, t$c), f2 = r2 ? Root$9 : "em";
+  const { asChild: r2, className: t2, ...s2 } = v$8(p2, t$c), f2 = r2 ? Root$a : "em";
   return reactExports.createElement(f2, { ...s2, ref: m2, className: y$5("rt-Em", t2) });
 });
 e$a.displayName = "Em";
@@ -23288,17 +23407,17 @@ function p$b(s2) {
   return s2 === "current" ? "inset" : s2;
 }
 const e$8 = reactExports.forwardRef((r2, t2) => {
-  const { asChild: p2, className: s2, ...n2 } = v$8(r2, u$4, r$t), m2 = p2 ? Root$9 : "div";
+  const { asChild: p2, className: s2, ...n2 } = v$8(r2, u$4, r$t), m2 = p2 ? Root$a : "div";
   return reactExports.createElement(m2, { ...n2, ref: t2, className: y$5("rt-Inset", s2) });
 });
 e$8.displayName = "Inset";
 const e$7 = ["1", "2", "3", "4", "5", "6", "7", "8", "9"], o$d = { ...o$o, size: { type: "enum", className: "rt-r-size", values: e$7, responsive: true } };
 const r$e = reactExports.forwardRef((p2, e2) => {
-  const { asChild: t2, className: s2, ...m2 } = v$8(p2, o$d, r$t), d2 = t2 ? Root$9 : "kbd";
+  const { asChild: t2, className: s2, ...m2 } = v$8(p2, o$d, r$t), d2 = t2 ? Root$a : "kbd";
   return reactExports.createElement(d2, { ...m2, ref: e2, className: y$5("rt-reset", "rt-Kbd", s2) });
 });
 r$e.displayName = "Kbd";
-const n$3 = ["1", "2", "3", "4", "5", "6", "7", "8", "9"], f$7 = ["auto", "always", "hover", "none"], m$3 = { ...o$o, size: { type: "enum", className: "rt-r-size", values: n$3, responsive: true }, ...t$n, ...r$v, ...e$p, ...r$u, underline: { type: "enum", className: "rt-underline", values: f$7, default: "auto" }, ...s$e, ...o$m };
+const n$3 = ["1", "2", "3", "4", "5", "6", "7", "8", "9"], f$7 = ["auto", "always", "hover", "none"], m$3 = { ...o$o, size: { type: "enum", className: "rt-r-size", values: n$3, responsive: true }, ...t$n, ...r$v, ...e$p, ...r$u, underline: { type: "enum", className: "rt-underline", values: f$7, default: "auto" }, ...s$f, ...o$m };
 const e$6 = reactExports.forwardRef((p2, t2) => {
   const { children: r2, className: s2, color: n2, asChild: i, ...m2 } = v$8(p2, m$3);
   return reactExports.createElement(p$w, { ...m2, "data-accent-color": n2, ref: t2, asChild: true, className: y$5("rt-reset", "rt-Link", s2) }, i ? r2 : reactExports.createElement("a", null, r2));
@@ -23326,11 +23445,11 @@ const s$2 = reactExports.forwardRef((p2, t2) => {
 s$2.displayName = "Progress";
 const p$9 = { ...o$o, ...e$p, ...r$u };
 const e$5 = reactExports.forwardRef((t2, p2) => {
-  const { asChild: r2, className: s2, ...m2 } = v$8(t2, p$9), f2 = r2 ? Root$9 : "q";
+  const { asChild: r2, className: s2, ...m2 } = v$8(t2, p$9), f2 = r2 ? Root$a : "q";
   return reactExports.createElement(f2, { ...m2, ref: p2, className: y$5("rt-Quote", s2) });
 });
 e$5.displayName = "Quote";
-const a$9 = ["1", "2", "3"], t$9 = ["surface", "classic"], p$8 = { ...o$o, size: { type: "enum", className: "rt-r-size", values: a$9, default: "2", responsive: true }, variant: { type: "enum", className: "rt-variant", values: t$9, default: "surface" }, ...r$w, ...o$m, columns: { ...s$6.columns, default: "repeat(auto-fit, minmax(160px, 1fr))" }, gap: { ...s$6.gap, default: "4" } };
+const a$9 = ["1", "2", "3"], t$9 = ["surface", "classic"], p$8 = { ...o$o, size: { type: "enum", className: "rt-r-size", values: a$9, default: "2", responsive: true }, variant: { type: "enum", className: "rt-variant", values: t$9, default: "surface" }, ...r$w, ...o$m, columns: { ...s$7.columns, default: "repeat(auto-fit, minmax(160px, 1fr))" }, gap: { ...s$7.gap, default: "4" } };
 const p$7 = reactExports.forwardRef((r2, t2) => {
   const { className: e2, color: d2, ...m2 } = v$8(r2, p$8, r$t);
   return reactExports.createElement(o$g, { asChild: true }, reactExports.createElement(Root2$2, { "data-accent-color": d2, ...m2, ref: t2, className: y$5("rt-RadioCardsRoot", e2) }));
@@ -23360,7 +23479,7 @@ const e$4 = reactExports.forwardRef((r2, t2) => {
   return reactExports.createElement("input", { type: "radio", "data-accent-color": s2, ...m2, onChange: composeEventHandlers(i, (d2) => n2 == null ? void 0 : n2(d2.currentTarget.value)), ref: composeRefs(p2, t2), className: y$5("rt-reset", "rt-BaseRadioRoot", "rt-RadioRoot", a2) });
 });
 e$4.displayName = "Radio";
-const o$9 = reactExports.forwardRef(({ className: t2, children: r2, ...s2 }, p2) => reactExports.createElement(Root$9, { ...s2, ref: p2, className: y$5("rt-reset", t2) }, a$q(r2)));
+const o$9 = reactExports.forwardRef(({ className: t2, children: r2, ...s2 }, p2) => reactExports.createElement(Root$a, { ...s2, ref: p2, className: y$5("rt-reset", t2) }, a$q(r2)));
 o$9.displayName = "Reset";
 const s$1 = ["1", "2", "3"], a$7 = ["surface", "classic"], o$8 = { disabled: { type: "boolean", className: "disabled", default: false }, size: { type: "enum", className: "rt-r-size", values: s$1, default: "2", responsive: true }, variant: { type: "enum", className: "rt-variant", values: a$7, default: "surface" }, ...r$r };
 const p$6 = reactExports.forwardRef((o2, t2) => {
@@ -23377,7 +23496,7 @@ function r$b(e2) {
   return e2 === "initial" ? "block" : e2;
 }
 const r$a = reactExports.forwardRef((t2, p2) => {
-  const { asChild: e2, className: s2, ...m2 } = v$8(t2, t$6, u$8, r$t), i = e2 ? Root$9 : "section";
+  const { asChild: e2, className: s2, ...m2 } = v$8(t2, t$6, u$8, r$t), i = e2 ? Root$a : "section";
   return reactExports.createElement(i, { ...m2, ref: p2, className: y$5("rt-Section", s2) });
 });
 r$a.displayName = "Section";
@@ -23415,7 +23534,7 @@ const p$3 = { loading: { type: "boolean", default: true }, ...t$p, ...e$u };
 const r$6 = reactExports.forwardRef((t2, p2) => {
   const { children: e2, className: n2, loading: s2, ...m2 } = v$8(t2, p$3, r$t);
   if (!s2) return e2;
-  const i = reactExports.isValidElement(e2) ? Root$9 : "span";
+  const i = reactExports.isValidElement(e2) ? Root$a : "span";
   return reactExports.createElement(i, { ref: p2, "aria-hidden": true, className: y$5("rt-Skeleton", n2), "data-inline-skeleton": reactExports.isValidElement(e2) ? void 0 : true, tabIndex: -1, inert: r$7, ...m2 }, e2);
 });
 r$6.displayName = "Skeleton";
@@ -23427,7 +23546,7 @@ const s = reactExports.forwardRef((i, a2) => {
 s.displayName = "Slider";
 const p$2 = { ...o$o, ...e$p, ...r$u };
 const r$5 = reactExports.forwardRef((t2, e2) => {
-  const { asChild: p2, className: s2, ...n2 } = v$8(t2, p$2), m2 = p2 ? Root$9 : "strong";
+  const { asChild: p2, className: s2, ...n2 } = v$8(t2, p$2), m2 = p2 ? Root$a : "strong";
   return reactExports.createElement(m2, { ...n2, ref: e2, className: y$5("rt-Strong", s2) });
 });
 r$5.displayName = "Strong";
@@ -23553,7 +23672,7 @@ const z$1 = reactExports.forwardRef((n2, a2) => {
     E2 ? K2(t2) : (H4(t2), l9(t2)), o2();
   }, [d2, B3, E2, K2]), P2 = a$r(g2), S2 = f2 === "auto" ? P2 : f2, [W2, M2] = reactExports.useState("idle");
   async function U2() {
-    const t2 = { appearance: d2 === s$d.appearance.default ? void 0 : d2, accentColor: g2 === s$d.accentColor.default ? void 0 : g2, grayColor: f2 === s$d.grayColor.default ? void 0 : f2, panelBackground: T2 === s$d.panelBackground.default ? void 0 : T2, radius: w2 === s$d.radius.default ? void 0 : w2, scaling: x2 === s$d.scaling.default ? void 0 : x2 }, o2 = Object.keys(t2).filter((i) => t2[i] !== void 0).map((i) => `${i}="${t2[i]}"`).join(" "), m2 = o2 ? `<Theme ${o2}>` : "<Theme>";
+    const t2 = { appearance: d2 === s$e.appearance.default ? void 0 : d2, accentColor: g2 === s$e.accentColor.default ? void 0 : g2, grayColor: f2 === s$e.grayColor.default ? void 0 : f2, panelBackground: T2 === s$e.panelBackground.default ? void 0 : T2, radius: w2 === s$e.radius.default ? void 0 : w2, scaling: x2 === s$e.scaling.default ? void 0 : x2 }, o2 = Object.keys(t2).filter((i) => t2[i] !== void 0).map((i) => `${i}="${t2[i]}"`).join(" "), m2 = o2 ? `<Theme ${o2}>` : "<Theme>";
     M2("copying"), await navigator.clipboard.writeText(m2), M2("copied"), setTimeout(() => M2("idle"), 2e3);
   }
   const [Z2, H4] = reactExports.useState(d2 === "inherit" ? null : d2), b2 = `
@@ -23591,7 +23710,7 @@ const z$1 = reactExports.forwardRef((n2, a2) => {
       });
     });
     return m2(), d2 === "inherit" && (i.observe(t2, { attributes: true }), i.observe(o2, { attributes: true })), () => i.disconnect();
-  }, [d2]), reactExports.createElement(R$3, { asChild: true, radius: "medium", scaling: "100%" }, reactExports.createElement(p$m, { direction: "column", position: "fixed", top: "0", right: "0", mr: "4", mt: "4", inert: l2 ? void 0 : r$7, ...v2, ref: a2, style: { zIndex: 9999, overflow: "hidden", maxHeight: "calc(100vh - var(--space-4) - var(--space-4))", borderRadius: "var(--radius-4)", backgroundColor: "var(--color-panel-solid)", transformOrigin: "top center", transitionProperty: "transform, box-shadow", transitionDuration: "200ms", transitionTimingFunction: l2 ? "ease-out" : "ease-in", transform: l2 ? "none" : "translateX(105%)", boxShadow: l2 ? "var(--shadow-5)" : "var(--shadow-2)", ...n2.style } }, reactExports.createElement(c$2, null, reactExports.createElement(p$p, { flexGrow: "1", p: "5", position: "relative" }, reactExports.createElement(p$p, { position: "absolute", top: "0", right: "0", m: "2" }, reactExports.createElement(e$1, { content: "Press T to show/hide the Theme Panel", side: "bottom", sideOffset: 6 }, reactExports.createElement(r$e, { asChild: true, size: "3", tabIndex: 0, className: "rt-ThemePanelShortcut" }, reactExports.createElement("button", { onClick: () => c2(!l2) }, "T")))), reactExports.createElement(r$s, { size: "5", trim: "both", as: "h3", mb: "5" }, "Theme"), reactExports.createElement(p$w, { id: "accent-color-title", as: "p", size: "2", weight: "medium", mt: "5" }, "Accent color"), reactExports.createElement(o$g, { columns: "10", gap: "2", mt: "3", role: "group", "aria-labelledby": "accent-color-title" }, s$d.accentColor.values.map((t2) => reactExports.createElement("label", { key: t2, className: "rt-ThemePanelSwatch", style: { backgroundColor: `var(--${t2}-9)` } }, reactExports.createElement(e$1, { content: `${C(t2)}${g2 === "gray" && S2 !== "gray" ? ` (${C(S2)})` : ""}` }, reactExports.createElement("input", { className: "rt-ThemePanelSwatchInput", type: "radio", name: "accentColor", value: t2, checked: g2 === t2, onChange: (o2) => $(o2.target.value) }))))), reactExports.createElement(p$m, { asChild: true, align: "center", justify: "between" }, reactExports.createElement(p$w, { as: "p", id: "gray-color-title", size: "2", weight: "medium", mt: "5" }, "Gray color")), reactExports.createElement(o$g, { columns: "10", gap: "2", mt: "3", role: "group", "aria-labelledby": "gray-color-title" }, s$d.grayColor.values.map((t2) => reactExports.createElement(p$m, { key: t2, asChild: true, align: "center", justify: "center" }, reactExports.createElement("label", { className: "rt-ThemePanelSwatch", style: { backgroundColor: t2 === "auto" ? `var(--${P2}-9)` : t2 === "gray" ? "var(--gray-9)" : `var(--${t2}-9)`, filter: t2 === "gray" ? "saturate(0)" : void 0 } }, reactExports.createElement(e$1, { content: `${C(t2)}${t2 === "auto" ? ` (${C(P2)})` : ""}` }, reactExports.createElement("input", { className: "rt-ThemePanelSwatchInput", type: "radio", name: "grayColor", value: t2, checked: f2 === t2, onChange: (o2) => F2(o2.target.value) })))))), reactExports.createElement(p$w, { id: "appearance-title", as: "p", size: "2", weight: "medium", mt: "5" }, "Appearance"), reactExports.createElement(o$g, { columns: "2", gap: "2", mt: "3", role: "group", "aria-labelledby": "appearance-title" }, ["light", "dark"].map((t2) => reactExports.createElement("label", { key: t2, className: "rt-ThemePanelRadioCard" }, reactExports.createElement("input", { className: "rt-ThemePanelRadioCardInput", type: "radio", name: "appearance", value: t2, checked: Z2 === t2, onChange: (o2) => k2(o2.target.value) }), reactExports.createElement(p$m, { align: "center", justify: "center", height: "32px", gap: "2" }, t2 === "light" ? reactExports.createElement("svg", { width: "15", height: "15", viewBox: "0 0 15 15", fill: "none", xmlns: "http://www.w3.org/2000/svg", style: { margin: "0 -1px" } }, reactExports.createElement("path", { d: "M7.5 0C7.77614 0 8 0.223858 8 0.5V2.5C8 2.77614 7.77614 3 7.5 3C7.22386 3 7 2.77614 7 2.5V0.5C7 0.223858 7.22386 0 7.5 0ZM2.1967 2.1967C2.39196 2.00144 2.70854 2.00144 2.90381 2.1967L4.31802 3.61091C4.51328 3.80617 4.51328 4.12276 4.31802 4.31802C4.12276 4.51328 3.80617 4.51328 3.61091 4.31802L2.1967 2.90381C2.00144 2.70854 2.00144 2.39196 2.1967 2.1967ZM0.5 7C0.223858 7 0 7.22386 0 7.5C0 7.77614 0.223858 8 0.5 8H2.5C2.77614 8 3 7.77614 3 7.5C3 7.22386 2.77614 7 2.5 7H0.5ZM2.1967 12.8033C2.00144 12.608 2.00144 12.2915 2.1967 12.0962L3.61091 10.682C3.80617 10.4867 4.12276 10.4867 4.31802 10.682C4.51328 10.8772 4.51328 11.1938 4.31802 11.3891L2.90381 12.8033C2.70854 12.9986 2.39196 12.9986 2.1967 12.8033ZM12.5 7C12.2239 7 12 7.22386 12 7.5C12 7.77614 12.2239 8 12.5 8H14.5C14.7761 8 15 7.77614 15 7.5C15 7.22386 14.7761 7 14.5 7H12.5ZM10.682 4.31802C10.4867 4.12276 10.4867 3.80617 10.682 3.61091L12.0962 2.1967C12.2915 2.00144 12.608 2.00144 12.8033 2.1967C12.9986 2.39196 12.9986 2.70854 12.8033 2.90381L11.3891 4.31802C11.1938 4.51328 10.8772 4.51328 10.682 4.31802ZM8 12.5C8 12.2239 7.77614 12 7.5 12C7.22386 12 7 12.2239 7 12.5V14.5C7 14.7761 7.22386 15 7.5 15C7.77614 15 8 14.7761 8 14.5V12.5ZM10.682 10.682C10.8772 10.4867 11.1938 10.4867 11.3891 10.682L12.8033 12.0962C12.9986 12.2915 12.9986 12.608 12.8033 12.8033C12.608 12.9986 12.2915 12.9986 12.0962 12.8033L10.682 11.3891C10.4867 11.1938 10.4867 10.8772 10.682 10.682ZM5.5 7.5C5.5 6.39543 6.39543 5.5 7.5 5.5C8.60457 5.5 9.5 6.39543 9.5 7.5C9.5 8.60457 8.60457 9.5 7.5 9.5C6.39543 9.5 5.5 8.60457 5.5 7.5ZM7.5 4.5C5.84315 4.5 4.5 5.84315 4.5 7.5C4.5 9.15685 5.84315 10.5 7.5 10.5C9.15685 10.5 10.5 9.15685 10.5 7.5C10.5 5.84315 9.15685 4.5 7.5 4.5Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" })) : reactExports.createElement("svg", { width: "15", height: "15", viewBox: "0 0 15 15", fill: "none", xmlns: "http://www.w3.org/2000/svg", style: { margin: "0 -1px" } }, reactExports.createElement("path", { d: "M2.89998 0.499976C2.89998 0.279062 2.72089 0.0999756 2.49998 0.0999756C2.27906 0.0999756 2.09998 0.279062 2.09998 0.499976V1.09998H1.49998C1.27906 1.09998 1.09998 1.27906 1.09998 1.49998C1.09998 1.72089 1.27906 1.89998 1.49998 1.89998H2.09998V2.49998C2.09998 2.72089 2.27906 2.89998 2.49998 2.89998C2.72089 2.89998 2.89998 2.72089 2.89998 2.49998V1.89998H3.49998C3.72089 1.89998 3.89998 1.72089 3.89998 1.49998C3.89998 1.27906 3.72089 1.09998 3.49998 1.09998H2.89998V0.499976ZM5.89998 3.49998C5.89998 3.27906 5.72089 3.09998 5.49998 3.09998C5.27906 3.09998 5.09998 3.27906 5.09998 3.49998V4.09998H4.49998C4.27906 4.09998 4.09998 4.27906 4.09998 4.49998C4.09998 4.72089 4.27906 4.89998 4.49998 4.89998H5.09998V5.49998C5.09998 5.72089 5.27906 5.89998 5.49998 5.89998C5.72089 5.89998 5.89998 5.72089 5.89998 5.49998V4.89998H6.49998C6.72089 4.89998 6.89998 4.72089 6.89998 4.49998C6.89998 4.27906 6.72089 4.09998 6.49998 4.09998H5.89998V3.49998ZM1.89998 6.49998C1.89998 6.27906 1.72089 6.09998 1.49998 6.09998C1.27906 6.09998 1.09998 6.27906 1.09998 6.49998V7.09998H0.499976C0.279062 7.09998 0.0999756 7.27906 0.0999756 7.49998C0.0999756 7.72089 0.279062 7.89998 0.499976 7.89998H1.09998V8.49998C1.09998 8.72089 1.27906 8.89997 1.49998 8.89997C1.72089 8.89997 1.89998 8.72089 1.89998 8.49998V7.89998H2.49998C2.72089 7.89998 2.89998 7.72089 2.89998 7.49998C2.89998 7.27906 2.72089 7.09998 2.49998 7.09998H1.89998V6.49998ZM8.54406 0.98184L8.24618 0.941586C8.03275 0.917676 7.90692 1.1655 8.02936 1.34194C8.17013 1.54479 8.29981 1.75592 8.41754 1.97445C8.91878 2.90485 9.20322 3.96932 9.20322 5.10022C9.20322 8.37201 6.82247 11.0878 3.69887 11.6097C3.45736 11.65 3.20988 11.6772 2.96008 11.6906C2.74563 11.702 2.62729 11.9535 2.77721 12.1072C2.84551 12.1773 2.91535 12.2458 2.98667 12.3128L3.05883 12.3795L3.31883 12.6045L3.50684 12.7532L3.62796 12.8433L3.81491 12.9742L3.99079 13.089C4.11175 13.1651 4.23536 13.2375 4.36157 13.3059L4.62496 13.4412L4.88553 13.5607L5.18837 13.6828L5.43169 13.7686C5.56564 13.8128 5.70149 13.8529 5.83857 13.8885C5.94262 13.9155 6.04767 13.9401 6.15405 13.9622C6.27993 13.9883 6.40713 14.0109 6.53544 14.0298L6.85241 14.0685L7.11934 14.0892C7.24637 14.0965 7.37436 14.1002 7.50322 14.1002C11.1483 14.1002 14.1032 11.1453 14.1032 7.50023C14.1032 7.25044 14.0893 7.00389 14.0623 6.76131L14.0255 6.48407C13.991 6.26083 13.9453 6.04129 13.8891 5.82642C13.8213 5.56709 13.7382 5.31398 13.6409 5.06881L13.5279 4.80132L13.4507 4.63542L13.3766 4.48666C13.2178 4.17773 13.0353 3.88295 12.8312 3.60423L12.6782 3.40352L12.4793 3.16432L12.3157 2.98361L12.1961 2.85951L12.0355 2.70246L11.8134 2.50184L11.4925 2.24191L11.2483 2.06498L10.9562 1.87446L10.6346 1.68894L10.3073 1.52378L10.1938 1.47176L9.95488 1.3706L9.67791 1.2669L9.42566 1.1846L9.10075 1.09489L8.83599 1.03486L8.54406 0.98184ZM10.4032 5.30023C10.4032 4.27588 10.2002 3.29829 9.83244 2.40604C11.7623 3.28995 13.1032 5.23862 13.1032 7.50023C13.1032 10.593 10.596 13.1002 7.50322 13.1002C6.63646 13.1002 5.81597 12.9036 5.08355 12.5522C6.5419 12.0941 7.81081 11.2082 8.74322 10.0416C8.87963 10.2284 9.10028 10.3497 9.34928 10.3497C9.76349 10.3497 10.0993 10.0139 10.0993 9.59971C10.0993 9.24256 9.84965 8.94373 9.51535 8.86816C9.57741 8.75165 9.63653 8.63334 9.6926 8.51332C9.88358 8.63163 10.1088 8.69993 10.35 8.69993C11.0403 8.69993 11.6 8.14028 11.6 7.44993C11.6 6.75976 11.0406 6.20024 10.3505 6.19993C10.3853 5.90487 10.4032 5.60464 10.4032 5.30023Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" })), reactExports.createElement(p$w, { size: "1", weight: "medium" }, C(t2)))))), reactExports.createElement(p$w, { id: "radius-title", as: "p", size: "2", weight: "medium", mt: "5" }, "Radius"), reactExports.createElement(o$g, { columns: "5", gap: "2", mt: "3", role: "group", "aria-labelledby": "radius-title" }, s$d.radius.values.map((t2) => reactExports.createElement(p$m, { key: t2, direction: "column", align: "center" }, reactExports.createElement("label", { className: "rt-ThemePanelRadioCard" }, reactExports.createElement("input", { className: "rt-ThemePanelRadioCardInput", type: "radio", name: "radius", id: `theme-panel-radius-${t2}`, value: t2, checked: w2 === t2, onChange: (o2) => D2(o2.target.value) }), reactExports.createElement(R$3, { asChild: true, radius: t2 }, reactExports.createElement(p$p, { m: "3", width: "32px", height: "32px", style: { borderTopLeftRadius: t2 === "full" ? "80%" : "var(--radius-5)", backgroundImage: "linear-gradient(to bottom right, var(--accent-3), var(--accent-4))", borderTop: "2px solid var(--accent-a8)", borderLeft: "2px solid var(--accent-a8)" } }))), reactExports.createElement(p$p, { asChild: true, pt: "2" }, reactExports.createElement(p$w, { asChild: true, size: "1", color: "gray" }, reactExports.createElement("label", { htmlFor: `theme-panel-radius-${t2}` }, C(t2))))))), reactExports.createElement(p$w, { id: "scaling-title", as: "p", size: "2", weight: "medium", mt: "5" }, "Scaling"), reactExports.createElement(o$g, { columns: "5", gap: "2", mt: "3", role: "group", "aria-labelledby": "scaling-title" }, s$d.scaling.values.map((t2) => reactExports.createElement("label", { key: t2, className: "rt-ThemePanelRadioCard" }, reactExports.createElement("input", { className: "rt-ThemePanelRadioCardInput", type: "radio", name: "scaling", value: t2, checked: x2 === t2, onChange: (o2) => j(o2.target.value) }), reactExports.createElement(p$m, { align: "center", justify: "center", height: "32px" }, reactExports.createElement(R$3, { asChild: true, scaling: t2 }, reactExports.createElement(p$m, { align: "center", justify: "center" }, reactExports.createElement(p$w, { size: "1", weight: "medium" }, C(t2)))))))), reactExports.createElement(p$m, { mt: "5", align: "center", gap: "2" }, reactExports.createElement(p$w, { id: "panel-background-title", as: "p", size: "2", weight: "medium" }, "Panel background"), reactExports.createElement(P$3, null, reactExports.createElement(s$3, null, reactExports.createElement(o$e, { size: "1", variant: "ghost", color: "gray" }, reactExports.createElement(s$g, { label: "Learn more about panel background options" }, reactExports.createElement("svg", { width: "15", height: "15", viewBox: "0 0 15 15", fill: "currentColor", xmlns: "http://www.w3.org/2000/svg" }, reactExports.createElement("path", { d: "M7.49991 0.876892C3.84222 0.876892 0.877075 3.84204 0.877075 7.49972C0.877075 11.1574 3.84222 14.1226 7.49991 14.1226C11.1576 14.1226 14.1227 11.1574 14.1227 7.49972C14.1227 3.84204 11.1576 0.876892 7.49991 0.876892ZM1.82707 7.49972C1.82707 4.36671 4.36689 1.82689 7.49991 1.82689C10.6329 1.82689 13.1727 4.36671 13.1727 7.49972C13.1727 10.6327 10.6329 13.1726 7.49991 13.1726C4.36689 13.1726 1.82707 10.6327 1.82707 7.49972ZM8.24992 4.49999C8.24992 4.9142 7.91413 5.24999 7.49992 5.24999C7.08571 5.24999 6.74992 4.9142 6.74992 4.49999C6.74992 4.08577 7.08571 3.74999 7.49992 3.74999C7.91413 3.74999 8.24992 4.08577 8.24992 4.49999ZM6.00003 5.99999H6.50003H7.50003C7.77618 5.99999 8.00003 6.22384 8.00003 6.49999V9.99999H8.50003H9.00003V11H8.50003H7.50003H6.50003H6.00003V9.99999H6.50003H7.00003V6.99999H6.50003H6.00003V5.99999Z", fillRule: "evenodd", clipRule: "evenodd" }))))), reactExports.createElement(i$9, { size: "1", style: { maxWidth: 220 }, side: "top", align: "center" }, reactExports.createElement(p$w, { as: "p", size: "2" }, "Whether Card and Table panels are translucent, showing some of the background behind them.")))), reactExports.createElement(o$g, { columns: "2", gap: "2", mt: "3", role: "group", "aria-labelledby": "panel-background-title" }, s$d.panelBackground.values.map((t2) => reactExports.createElement("label", { key: t2, className: "rt-ThemePanelRadioCard" }, reactExports.createElement("input", { className: "rt-ThemePanelRadioCardInput", type: "radio", name: "panelBackground", value: t2, checked: T2 === t2, onChange: (o2) => O2(o2.target.value) }), reactExports.createElement(p$m, { align: "center", justify: "center", height: "32px", gap: "2" }, t2 === "solid" ? reactExports.createElement("svg", { width: "15", height: "15", viewBox: "0 0 15 15", fill: "none", xmlns: "http://www.w3.org/2000/svg", style: { margin: "0 -2px" } }, reactExports.createElement("path", { d: "M0.877075 7.49988C0.877075 3.84219 3.84222 0.877045 7.49991 0.877045C11.1576 0.877045 14.1227 3.84219 14.1227 7.49988C14.1227 11.1575 11.1576 14.1227 7.49991 14.1227C3.84222 14.1227 0.877075 11.1575 0.877075 7.49988ZM7.49991 1.82704C4.36689 1.82704 1.82708 4.36686 1.82708 7.49988C1.82708 10.6329 4.36689 13.1727 7.49991 13.1727C10.6329 13.1727 13.1727 10.6329 13.1727 7.49988C13.1727 4.36686 10.6329 1.82704 7.49991 1.82704Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" })) : reactExports.createElement("svg", { width: "15", height: "15", viewBox: "0 0 15 15", fill: "none", xmlns: "http://www.w3.org/2000/svg", style: { margin: "0 -2px" } }, reactExports.createElement("path", { opacity: ".05", d: "M6.78296 13.376C8.73904 9.95284 8.73904 5.04719 6.78296 1.62405L7.21708 1.37598C9.261 4.95283 9.261 10.0472 7.21708 13.624L6.78296 13.376Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" }), reactExports.createElement("path", { opacity: ".1", d: "M7.28204 13.4775C9.23929 9.99523 9.23929 5.00475 7.28204 1.52248L7.71791 1.2775C9.76067 4.9119 9.76067 10.0881 7.71791 13.7225L7.28204 13.4775Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" }), reactExports.createElement("path", { opacity: ".15", d: "M7.82098 13.5064C9.72502 9.99523 9.72636 5.01411 7.82492 1.50084L8.26465 1.26285C10.2465 4.92466 10.2451 10.085 8.26052 13.7448L7.82098 13.5064Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" }), reactExports.createElement("path", { opacity: ".2", d: "M8.41284 13.429C10.1952 9.92842 10.1957 5.07537 8.41435 1.57402L8.85999 1.34729C10.7139 4.99113 10.7133 10.0128 8.85841 13.6559L8.41284 13.429Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" }), reactExports.createElement("path", { opacity: ".25", d: "M9.02441 13.2956C10.6567 9.8379 10.6586 5.17715 9.03005 1.71656L9.48245 1.50366C11.1745 5.09919 11.1726 9.91629 9.47657 13.5091L9.02441 13.2956Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" }), reactExports.createElement("path", { opacity: ".3", d: "M9.66809 13.0655C11.1097 9.69572 11.1107 5.3121 9.67088 1.94095L10.1307 1.74457C11.6241 5.24121 11.6231 9.76683 10.1278 13.2622L9.66809 13.0655Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" }), reactExports.createElement("path", { opacity: ".35", d: "M10.331 12.7456C11.5551 9.52073 11.5564 5.49103 10.3347 2.26444L10.8024 2.0874C12.0672 5.42815 12.0659 9.58394 10.7985 12.9231L10.331 12.7456Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" }), reactExports.createElement("path", { opacity: ".4", d: "M11.0155 12.2986C11.9938 9.29744 11.9948 5.71296 11.0184 2.71067L11.4939 2.55603C12.503 5.6589 12.502 9.35178 11.4909 12.4535L11.0155 12.2986Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" }), reactExports.createElement("path", { opacity: ".45", d: "M11.7214 11.668C12.4254 9.01303 12.4262 5.99691 11.7237 3.34116L12.2071 3.21329C12.9318 5.95292 12.931 9.05728 12.2047 11.7961L11.7214 11.668Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" }), reactExports.createElement("path", { opacity: ".5", d: "M12.4432 10.752C12.8524 8.63762 12.8523 6.36089 12.4429 4.2466L12.9338 4.15155C13.3553 6.32861 13.3554 8.66985 12.9341 10.847L12.4432 10.752Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" }), reactExports.createElement("path", { d: "M0.877075 7.49988C0.877075 3.84219 3.84222 0.877045 7.49991 0.877045C11.1576 0.877045 14.1227 3.84219 14.1227 7.49988C14.1227 11.1575 11.1576 14.1227 7.49991 14.1227C3.84222 14.1227 0.877075 11.1575 0.877075 7.49988ZM7.49991 1.82704C4.36689 1.82704 1.82708 4.36686 1.82708 7.49988C1.82708 10.6329 4.36689 13.1727 7.49991 13.1727C10.6329 13.1727 13.1727 10.6329 13.1727 7.49988C13.1727 4.36686 10.6329 1.82704 7.49991 1.82704Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" })), reactExports.createElement(p$w, { size: "1", weight: "medium" }, C(t2)))))), reactExports.createElement(o$j, { mt: "5", style: { width: "100%" }, onClick: U2 }, W2 === "copied" ? "Copied" : "Copy Theme")))));
+  }, [d2]), reactExports.createElement(R$3, { asChild: true, radius: "medium", scaling: "100%" }, reactExports.createElement(p$m, { direction: "column", position: "fixed", top: "0", right: "0", mr: "4", mt: "4", inert: l2 ? void 0 : r$7, ...v2, ref: a2, style: { zIndex: 9999, overflow: "hidden", maxHeight: "calc(100vh - var(--space-4) - var(--space-4))", borderRadius: "var(--radius-4)", backgroundColor: "var(--color-panel-solid)", transformOrigin: "top center", transitionProperty: "transform, box-shadow", transitionDuration: "200ms", transitionTimingFunction: l2 ? "ease-out" : "ease-in", transform: l2 ? "none" : "translateX(105%)", boxShadow: l2 ? "var(--shadow-5)" : "var(--shadow-2)", ...n2.style } }, reactExports.createElement(c$2, null, reactExports.createElement(p$p, { flexGrow: "1", p: "5", position: "relative" }, reactExports.createElement(p$p, { position: "absolute", top: "0", right: "0", m: "2" }, reactExports.createElement(e$1, { content: "Press T to show/hide the Theme Panel", side: "bottom", sideOffset: 6 }, reactExports.createElement(r$e, { asChild: true, size: "3", tabIndex: 0, className: "rt-ThemePanelShortcut" }, reactExports.createElement("button", { onClick: () => c2(!l2) }, "T")))), reactExports.createElement(r$s, { size: "5", trim: "both", as: "h3", mb: "5" }, "Theme"), reactExports.createElement(p$w, { id: "accent-color-title", as: "p", size: "2", weight: "medium", mt: "5" }, "Accent color"), reactExports.createElement(o$g, { columns: "10", gap: "2", mt: "3", role: "group", "aria-labelledby": "accent-color-title" }, s$e.accentColor.values.map((t2) => reactExports.createElement("label", { key: t2, className: "rt-ThemePanelSwatch", style: { backgroundColor: `var(--${t2}-9)` } }, reactExports.createElement(e$1, { content: `${C(t2)}${g2 === "gray" && S2 !== "gray" ? ` (${C(S2)})` : ""}` }, reactExports.createElement("input", { className: "rt-ThemePanelSwatchInput", type: "radio", name: "accentColor", value: t2, checked: g2 === t2, onChange: (o2) => $(o2.target.value) }))))), reactExports.createElement(p$m, { asChild: true, align: "center", justify: "between" }, reactExports.createElement(p$w, { as: "p", id: "gray-color-title", size: "2", weight: "medium", mt: "5" }, "Gray color")), reactExports.createElement(o$g, { columns: "10", gap: "2", mt: "3", role: "group", "aria-labelledby": "gray-color-title" }, s$e.grayColor.values.map((t2) => reactExports.createElement(p$m, { key: t2, asChild: true, align: "center", justify: "center" }, reactExports.createElement("label", { className: "rt-ThemePanelSwatch", style: { backgroundColor: t2 === "auto" ? `var(--${P2}-9)` : t2 === "gray" ? "var(--gray-9)" : `var(--${t2}-9)`, filter: t2 === "gray" ? "saturate(0)" : void 0 } }, reactExports.createElement(e$1, { content: `${C(t2)}${t2 === "auto" ? ` (${C(P2)})` : ""}` }, reactExports.createElement("input", { className: "rt-ThemePanelSwatchInput", type: "radio", name: "grayColor", value: t2, checked: f2 === t2, onChange: (o2) => F2(o2.target.value) })))))), reactExports.createElement(p$w, { id: "appearance-title", as: "p", size: "2", weight: "medium", mt: "5" }, "Appearance"), reactExports.createElement(o$g, { columns: "2", gap: "2", mt: "3", role: "group", "aria-labelledby": "appearance-title" }, ["light", "dark"].map((t2) => reactExports.createElement("label", { key: t2, className: "rt-ThemePanelRadioCard" }, reactExports.createElement("input", { className: "rt-ThemePanelRadioCardInput", type: "radio", name: "appearance", value: t2, checked: Z2 === t2, onChange: (o2) => k2(o2.target.value) }), reactExports.createElement(p$m, { align: "center", justify: "center", height: "32px", gap: "2" }, t2 === "light" ? reactExports.createElement("svg", { width: "15", height: "15", viewBox: "0 0 15 15", fill: "none", xmlns: "http://www.w3.org/2000/svg", style: { margin: "0 -1px" } }, reactExports.createElement("path", { d: "M7.5 0C7.77614 0 8 0.223858 8 0.5V2.5C8 2.77614 7.77614 3 7.5 3C7.22386 3 7 2.77614 7 2.5V0.5C7 0.223858 7.22386 0 7.5 0ZM2.1967 2.1967C2.39196 2.00144 2.70854 2.00144 2.90381 2.1967L4.31802 3.61091C4.51328 3.80617 4.51328 4.12276 4.31802 4.31802C4.12276 4.51328 3.80617 4.51328 3.61091 4.31802L2.1967 2.90381C2.00144 2.70854 2.00144 2.39196 2.1967 2.1967ZM0.5 7C0.223858 7 0 7.22386 0 7.5C0 7.77614 0.223858 8 0.5 8H2.5C2.77614 8 3 7.77614 3 7.5C3 7.22386 2.77614 7 2.5 7H0.5ZM2.1967 12.8033C2.00144 12.608 2.00144 12.2915 2.1967 12.0962L3.61091 10.682C3.80617 10.4867 4.12276 10.4867 4.31802 10.682C4.51328 10.8772 4.51328 11.1938 4.31802 11.3891L2.90381 12.8033C2.70854 12.9986 2.39196 12.9986 2.1967 12.8033ZM12.5 7C12.2239 7 12 7.22386 12 7.5C12 7.77614 12.2239 8 12.5 8H14.5C14.7761 8 15 7.77614 15 7.5C15 7.22386 14.7761 7 14.5 7H12.5ZM10.682 4.31802C10.4867 4.12276 10.4867 3.80617 10.682 3.61091L12.0962 2.1967C12.2915 2.00144 12.608 2.00144 12.8033 2.1967C12.9986 2.39196 12.9986 2.70854 12.8033 2.90381L11.3891 4.31802C11.1938 4.51328 10.8772 4.51328 10.682 4.31802ZM8 12.5C8 12.2239 7.77614 12 7.5 12C7.22386 12 7 12.2239 7 12.5V14.5C7 14.7761 7.22386 15 7.5 15C7.77614 15 8 14.7761 8 14.5V12.5ZM10.682 10.682C10.8772 10.4867 11.1938 10.4867 11.3891 10.682L12.8033 12.0962C12.9986 12.2915 12.9986 12.608 12.8033 12.8033C12.608 12.9986 12.2915 12.9986 12.0962 12.8033L10.682 11.3891C10.4867 11.1938 10.4867 10.8772 10.682 10.682ZM5.5 7.5C5.5 6.39543 6.39543 5.5 7.5 5.5C8.60457 5.5 9.5 6.39543 9.5 7.5C9.5 8.60457 8.60457 9.5 7.5 9.5C6.39543 9.5 5.5 8.60457 5.5 7.5ZM7.5 4.5C5.84315 4.5 4.5 5.84315 4.5 7.5C4.5 9.15685 5.84315 10.5 7.5 10.5C9.15685 10.5 10.5 9.15685 10.5 7.5C10.5 5.84315 9.15685 4.5 7.5 4.5Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" })) : reactExports.createElement("svg", { width: "15", height: "15", viewBox: "0 0 15 15", fill: "none", xmlns: "http://www.w3.org/2000/svg", style: { margin: "0 -1px" } }, reactExports.createElement("path", { d: "M2.89998 0.499976C2.89998 0.279062 2.72089 0.0999756 2.49998 0.0999756C2.27906 0.0999756 2.09998 0.279062 2.09998 0.499976V1.09998H1.49998C1.27906 1.09998 1.09998 1.27906 1.09998 1.49998C1.09998 1.72089 1.27906 1.89998 1.49998 1.89998H2.09998V2.49998C2.09998 2.72089 2.27906 2.89998 2.49998 2.89998C2.72089 2.89998 2.89998 2.72089 2.89998 2.49998V1.89998H3.49998C3.72089 1.89998 3.89998 1.72089 3.89998 1.49998C3.89998 1.27906 3.72089 1.09998 3.49998 1.09998H2.89998V0.499976ZM5.89998 3.49998C5.89998 3.27906 5.72089 3.09998 5.49998 3.09998C5.27906 3.09998 5.09998 3.27906 5.09998 3.49998V4.09998H4.49998C4.27906 4.09998 4.09998 4.27906 4.09998 4.49998C4.09998 4.72089 4.27906 4.89998 4.49998 4.89998H5.09998V5.49998C5.09998 5.72089 5.27906 5.89998 5.49998 5.89998C5.72089 5.89998 5.89998 5.72089 5.89998 5.49998V4.89998H6.49998C6.72089 4.89998 6.89998 4.72089 6.89998 4.49998C6.89998 4.27906 6.72089 4.09998 6.49998 4.09998H5.89998V3.49998ZM1.89998 6.49998C1.89998 6.27906 1.72089 6.09998 1.49998 6.09998C1.27906 6.09998 1.09998 6.27906 1.09998 6.49998V7.09998H0.499976C0.279062 7.09998 0.0999756 7.27906 0.0999756 7.49998C0.0999756 7.72089 0.279062 7.89998 0.499976 7.89998H1.09998V8.49998C1.09998 8.72089 1.27906 8.89997 1.49998 8.89997C1.72089 8.89997 1.89998 8.72089 1.89998 8.49998V7.89998H2.49998C2.72089 7.89998 2.89998 7.72089 2.89998 7.49998C2.89998 7.27906 2.72089 7.09998 2.49998 7.09998H1.89998V6.49998ZM8.54406 0.98184L8.24618 0.941586C8.03275 0.917676 7.90692 1.1655 8.02936 1.34194C8.17013 1.54479 8.29981 1.75592 8.41754 1.97445C8.91878 2.90485 9.20322 3.96932 9.20322 5.10022C9.20322 8.37201 6.82247 11.0878 3.69887 11.6097C3.45736 11.65 3.20988 11.6772 2.96008 11.6906C2.74563 11.702 2.62729 11.9535 2.77721 12.1072C2.84551 12.1773 2.91535 12.2458 2.98667 12.3128L3.05883 12.3795L3.31883 12.6045L3.50684 12.7532L3.62796 12.8433L3.81491 12.9742L3.99079 13.089C4.11175 13.1651 4.23536 13.2375 4.36157 13.3059L4.62496 13.4412L4.88553 13.5607L5.18837 13.6828L5.43169 13.7686C5.56564 13.8128 5.70149 13.8529 5.83857 13.8885C5.94262 13.9155 6.04767 13.9401 6.15405 13.9622C6.27993 13.9883 6.40713 14.0109 6.53544 14.0298L6.85241 14.0685L7.11934 14.0892C7.24637 14.0965 7.37436 14.1002 7.50322 14.1002C11.1483 14.1002 14.1032 11.1453 14.1032 7.50023C14.1032 7.25044 14.0893 7.00389 14.0623 6.76131L14.0255 6.48407C13.991 6.26083 13.9453 6.04129 13.8891 5.82642C13.8213 5.56709 13.7382 5.31398 13.6409 5.06881L13.5279 4.80132L13.4507 4.63542L13.3766 4.48666C13.2178 4.17773 13.0353 3.88295 12.8312 3.60423L12.6782 3.40352L12.4793 3.16432L12.3157 2.98361L12.1961 2.85951L12.0355 2.70246L11.8134 2.50184L11.4925 2.24191L11.2483 2.06498L10.9562 1.87446L10.6346 1.68894L10.3073 1.52378L10.1938 1.47176L9.95488 1.3706L9.67791 1.2669L9.42566 1.1846L9.10075 1.09489L8.83599 1.03486L8.54406 0.98184ZM10.4032 5.30023C10.4032 4.27588 10.2002 3.29829 9.83244 2.40604C11.7623 3.28995 13.1032 5.23862 13.1032 7.50023C13.1032 10.593 10.596 13.1002 7.50322 13.1002C6.63646 13.1002 5.81597 12.9036 5.08355 12.5522C6.5419 12.0941 7.81081 11.2082 8.74322 10.0416C8.87963 10.2284 9.10028 10.3497 9.34928 10.3497C9.76349 10.3497 10.0993 10.0139 10.0993 9.59971C10.0993 9.24256 9.84965 8.94373 9.51535 8.86816C9.57741 8.75165 9.63653 8.63334 9.6926 8.51332C9.88358 8.63163 10.1088 8.69993 10.35 8.69993C11.0403 8.69993 11.6 8.14028 11.6 7.44993C11.6 6.75976 11.0406 6.20024 10.3505 6.19993C10.3853 5.90487 10.4032 5.60464 10.4032 5.30023Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" })), reactExports.createElement(p$w, { size: "1", weight: "medium" }, C(t2)))))), reactExports.createElement(p$w, { id: "radius-title", as: "p", size: "2", weight: "medium", mt: "5" }, "Radius"), reactExports.createElement(o$g, { columns: "5", gap: "2", mt: "3", role: "group", "aria-labelledby": "radius-title" }, s$e.radius.values.map((t2) => reactExports.createElement(p$m, { key: t2, direction: "column", align: "center" }, reactExports.createElement("label", { className: "rt-ThemePanelRadioCard" }, reactExports.createElement("input", { className: "rt-ThemePanelRadioCardInput", type: "radio", name: "radius", id: `theme-panel-radius-${t2}`, value: t2, checked: w2 === t2, onChange: (o2) => D2(o2.target.value) }), reactExports.createElement(R$3, { asChild: true, radius: t2 }, reactExports.createElement(p$p, { m: "3", width: "32px", height: "32px", style: { borderTopLeftRadius: t2 === "full" ? "80%" : "var(--radius-5)", backgroundImage: "linear-gradient(to bottom right, var(--accent-3), var(--accent-4))", borderTop: "2px solid var(--accent-a8)", borderLeft: "2px solid var(--accent-a8)" } }))), reactExports.createElement(p$p, { asChild: true, pt: "2" }, reactExports.createElement(p$w, { asChild: true, size: "1", color: "gray" }, reactExports.createElement("label", { htmlFor: `theme-panel-radius-${t2}` }, C(t2))))))), reactExports.createElement(p$w, { id: "scaling-title", as: "p", size: "2", weight: "medium", mt: "5" }, "Scaling"), reactExports.createElement(o$g, { columns: "5", gap: "2", mt: "3", role: "group", "aria-labelledby": "scaling-title" }, s$e.scaling.values.map((t2) => reactExports.createElement("label", { key: t2, className: "rt-ThemePanelRadioCard" }, reactExports.createElement("input", { className: "rt-ThemePanelRadioCardInput", type: "radio", name: "scaling", value: t2, checked: x2 === t2, onChange: (o2) => j(o2.target.value) }), reactExports.createElement(p$m, { align: "center", justify: "center", height: "32px" }, reactExports.createElement(R$3, { asChild: true, scaling: t2 }, reactExports.createElement(p$m, { align: "center", justify: "center" }, reactExports.createElement(p$w, { size: "1", weight: "medium" }, C(t2)))))))), reactExports.createElement(p$m, { mt: "5", align: "center", gap: "2" }, reactExports.createElement(p$w, { id: "panel-background-title", as: "p", size: "2", weight: "medium" }, "Panel background"), reactExports.createElement(P$3, null, reactExports.createElement(s$3, null, reactExports.createElement(o$e, { size: "1", variant: "ghost", color: "gray" }, reactExports.createElement(s$h, { label: "Learn more about panel background options" }, reactExports.createElement("svg", { width: "15", height: "15", viewBox: "0 0 15 15", fill: "currentColor", xmlns: "http://www.w3.org/2000/svg" }, reactExports.createElement("path", { d: "M7.49991 0.876892C3.84222 0.876892 0.877075 3.84204 0.877075 7.49972C0.877075 11.1574 3.84222 14.1226 7.49991 14.1226C11.1576 14.1226 14.1227 11.1574 14.1227 7.49972C14.1227 3.84204 11.1576 0.876892 7.49991 0.876892ZM1.82707 7.49972C1.82707 4.36671 4.36689 1.82689 7.49991 1.82689C10.6329 1.82689 13.1727 4.36671 13.1727 7.49972C13.1727 10.6327 10.6329 13.1726 7.49991 13.1726C4.36689 13.1726 1.82707 10.6327 1.82707 7.49972ZM8.24992 4.49999C8.24992 4.9142 7.91413 5.24999 7.49992 5.24999C7.08571 5.24999 6.74992 4.9142 6.74992 4.49999C6.74992 4.08577 7.08571 3.74999 7.49992 3.74999C7.91413 3.74999 8.24992 4.08577 8.24992 4.49999ZM6.00003 5.99999H6.50003H7.50003C7.77618 5.99999 8.00003 6.22384 8.00003 6.49999V9.99999H8.50003H9.00003V11H8.50003H7.50003H6.50003H6.00003V9.99999H6.50003H7.00003V6.99999H6.50003H6.00003V5.99999Z", fillRule: "evenodd", clipRule: "evenodd" }))))), reactExports.createElement(i$9, { size: "1", style: { maxWidth: 220 }, side: "top", align: "center" }, reactExports.createElement(p$w, { as: "p", size: "2" }, "Whether Card and Table panels are translucent, showing some of the background behind them.")))), reactExports.createElement(o$g, { columns: "2", gap: "2", mt: "3", role: "group", "aria-labelledby": "panel-background-title" }, s$e.panelBackground.values.map((t2) => reactExports.createElement("label", { key: t2, className: "rt-ThemePanelRadioCard" }, reactExports.createElement("input", { className: "rt-ThemePanelRadioCardInput", type: "radio", name: "panelBackground", value: t2, checked: T2 === t2, onChange: (o2) => O2(o2.target.value) }), reactExports.createElement(p$m, { align: "center", justify: "center", height: "32px", gap: "2" }, t2 === "solid" ? reactExports.createElement("svg", { width: "15", height: "15", viewBox: "0 0 15 15", fill: "none", xmlns: "http://www.w3.org/2000/svg", style: { margin: "0 -2px" } }, reactExports.createElement("path", { d: "M0.877075 7.49988C0.877075 3.84219 3.84222 0.877045 7.49991 0.877045C11.1576 0.877045 14.1227 3.84219 14.1227 7.49988C14.1227 11.1575 11.1576 14.1227 7.49991 14.1227C3.84222 14.1227 0.877075 11.1575 0.877075 7.49988ZM7.49991 1.82704C4.36689 1.82704 1.82708 4.36686 1.82708 7.49988C1.82708 10.6329 4.36689 13.1727 7.49991 13.1727C10.6329 13.1727 13.1727 10.6329 13.1727 7.49988C13.1727 4.36686 10.6329 1.82704 7.49991 1.82704Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" })) : reactExports.createElement("svg", { width: "15", height: "15", viewBox: "0 0 15 15", fill: "none", xmlns: "http://www.w3.org/2000/svg", style: { margin: "0 -2px" } }, reactExports.createElement("path", { opacity: ".05", d: "M6.78296 13.376C8.73904 9.95284 8.73904 5.04719 6.78296 1.62405L7.21708 1.37598C9.261 4.95283 9.261 10.0472 7.21708 13.624L6.78296 13.376Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" }), reactExports.createElement("path", { opacity: ".1", d: "M7.28204 13.4775C9.23929 9.99523 9.23929 5.00475 7.28204 1.52248L7.71791 1.2775C9.76067 4.9119 9.76067 10.0881 7.71791 13.7225L7.28204 13.4775Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" }), reactExports.createElement("path", { opacity: ".15", d: "M7.82098 13.5064C9.72502 9.99523 9.72636 5.01411 7.82492 1.50084L8.26465 1.26285C10.2465 4.92466 10.2451 10.085 8.26052 13.7448L7.82098 13.5064Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" }), reactExports.createElement("path", { opacity: ".2", d: "M8.41284 13.429C10.1952 9.92842 10.1957 5.07537 8.41435 1.57402L8.85999 1.34729C10.7139 4.99113 10.7133 10.0128 8.85841 13.6559L8.41284 13.429Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" }), reactExports.createElement("path", { opacity: ".25", d: "M9.02441 13.2956C10.6567 9.8379 10.6586 5.17715 9.03005 1.71656L9.48245 1.50366C11.1745 5.09919 11.1726 9.91629 9.47657 13.5091L9.02441 13.2956Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" }), reactExports.createElement("path", { opacity: ".3", d: "M9.66809 13.0655C11.1097 9.69572 11.1107 5.3121 9.67088 1.94095L10.1307 1.74457C11.6241 5.24121 11.6231 9.76683 10.1278 13.2622L9.66809 13.0655Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" }), reactExports.createElement("path", { opacity: ".35", d: "M10.331 12.7456C11.5551 9.52073 11.5564 5.49103 10.3347 2.26444L10.8024 2.0874C12.0672 5.42815 12.0659 9.58394 10.7985 12.9231L10.331 12.7456Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" }), reactExports.createElement("path", { opacity: ".4", d: "M11.0155 12.2986C11.9938 9.29744 11.9948 5.71296 11.0184 2.71067L11.4939 2.55603C12.503 5.6589 12.502 9.35178 11.4909 12.4535L11.0155 12.2986Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" }), reactExports.createElement("path", { opacity: ".45", d: "M11.7214 11.668C12.4254 9.01303 12.4262 5.99691 11.7237 3.34116L12.2071 3.21329C12.9318 5.95292 12.931 9.05728 12.2047 11.7961L11.7214 11.668Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" }), reactExports.createElement("path", { opacity: ".5", d: "M12.4432 10.752C12.8524 8.63762 12.8523 6.36089 12.4429 4.2466L12.9338 4.15155C13.3553 6.32861 13.3554 8.66985 12.9341 10.847L12.4432 10.752Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" }), reactExports.createElement("path", { d: "M0.877075 7.49988C0.877075 3.84219 3.84222 0.877045 7.49991 0.877045C11.1576 0.877045 14.1227 3.84219 14.1227 7.49988C14.1227 11.1575 11.1576 14.1227 7.49991 14.1227C3.84222 14.1227 0.877075 11.1575 0.877075 7.49988ZM7.49991 1.82704C4.36689 1.82704 1.82708 4.36686 1.82708 7.49988C1.82708 10.6329 4.36689 13.1727 7.49991 13.1727C10.6329 13.1727 13.1727 10.6329 13.1727 7.49988C13.1727 4.36686 10.6329 1.82704 7.49991 1.82704Z", fill: "currentColor", fillRule: "evenodd", clipRule: "evenodd" })), reactExports.createElement(p$w, { size: "1", weight: "medium" }, C(t2)))))), reactExports.createElement(o$j, { mt: "5", style: { width: "100%" }, onClick: U2 }, W2 === "copied" ? "Copied" : "Copy Theme")))));
 });
 z$1.displayName = "ThemePanelImpl";
 function a9() {
@@ -23677,8 +23796,7 @@ const UNIVERSITIES = [
     videoUrl: "https://youtu.be/wiavNgTzB9o",
     placeholder: "Dán bảng đã copy từ trang sinh viên DUT vào đây...",
     features: {
-      byWeek: false,
-      // disbale this cuz no one use it
+      byWeek: true,
       showOnlyAvailable: true,
       onlyToday: true
     },
@@ -23726,6 +23844,8 @@ const UNIVERSITIES = [
     features: {
       byWeek: false,
       // UFL uses dates, not weeks
+      byDateRange: true,
+      // UFL uses date ranges
       showOnlyAvailable: true,
       onlyToday: true
     },
@@ -23856,6 +23976,12 @@ function UniversityFeatures({
   setByWeek,
   week,
   setWeek,
+  byDateRange,
+  setByDateRange,
+  dateRangeStart,
+  setDateRangeStart,
+  dateRangeEnd,
+  setDateRangeEnd,
   showOnlyAvailable,
   setShowOnlyAvailable,
   onlyToday,
@@ -23902,6 +24028,40 @@ function UniversityFeatures({
         }
       )
     ] }),
+    features.byDateRange && /* @__PURE__ */ jsxRuntimeExports.jsxs(p$m, { gap: "2", align: "center", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        c$3,
+        {
+          checked: byDateRange,
+          onCheckedChange: (e2) => setByDateRange(Boolean(e2))
+        }
+      ),
+      "Theo khoảng ngày",
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        u$1,
+        {
+          disabled: !byDateRange,
+          style: { width: "9rem" },
+          value: dateRangeStart,
+          onChange: (e2) => setDateRangeStart(e2.currentTarget.value),
+          size: "1",
+          type: "date",
+          placeholder: "Từ ngày"
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        u$1,
+        {
+          disabled: !byDateRange,
+          style: { width: "9rem" },
+          value: dateRangeEnd,
+          onChange: (e2) => setDateRangeEnd(e2.currentTarget.value),
+          size: "1",
+          type: "date",
+          placeholder: "Đến ngày"
+        }
+      )
+    ] }),
     features.showOnlyAvailable && /* @__PURE__ */ jsxRuntimeExports.jsxs(p$m, { gap: "2", align: "center", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         c$3,
@@ -23942,6 +24102,333 @@ function UniversityFeatures({
       ),
       feature.label
     ] }, feature.id))
+  ] });
+}
+function AddCustomCourse({ onAdd, editingCourse, onEditComplete, university }) {
+  const [open, setOpen] = reactExports.useState(false);
+  const [courseName, setCourseName] = reactExports.useState("");
+  const [instructor, setInstructor] = reactExports.useState("");
+  const [room, setRoom] = reactExports.useState("");
+  const [dayOfWeek, setDayOfWeek] = reactExports.useState("2");
+  const [lessonStart, setLessonStart] = reactExports.useState("1");
+  const [lessonEnd, setLessonEnd] = reactExports.useState("10");
+  const [weekStart, setWeekStart] = reactExports.useState("1");
+  const [weekEnd, setWeekEnd] = reactExports.useState("2");
+  const [dateStart, setDateStart] = reactExports.useState("");
+  const [dateEnd, setDateEnd] = reactExports.useState("");
+  const usesDates = university.features.byDateRange || false;
+  reactExports.useEffect(() => {
+    var _a2, _b2, _c, _d, _e, _f;
+    if (editingCourse) {
+      setCourseName(editingCourse.name);
+      setInstructor(editingCourse.instructor || "");
+      setRoom(((_a2 = editingCourse.time[0]) == null ? void 0 : _a2.class) || "");
+      setDayOfWeek(((_b2 = editingCourse.time[0]) == null ? void 0 : _b2.date.toString()) || "2");
+      setLessonStart(((_c = editingCourse.time[0]) == null ? void 0 : _c.lsStart.toString()) || "1");
+      setLessonEnd(((_d = editingCourse.time[0]) == null ? void 0 : _d.lsEnd.toString()) || "10");
+      if (usesDates && editingCourse.originalDateRanges && editingCourse.originalDateRanges.length > 0) {
+        const match = editingCourse.originalDateRanges[0].match(/(\d{2})\/(\d{2})\/(\d{4})\s*-\s*(\d{2})\/(\d{2})\/(\d{4})/);
+        if (match) {
+          setDateStart(`${match[3]}-${match[2]}-${match[1]}`);
+          setDateEnd(`${match[6]}-${match[5]}-${match[4]}`);
+        }
+      } else {
+        setWeekStart(((_e = editingCourse.weekRange[0]) == null ? void 0 : _e.from.toString()) || "1");
+        setWeekEnd(((_f = editingCourse.weekRange[0]) == null ? void 0 : _f.to.toString()) || "2");
+      }
+      setOpen(true);
+    }
+  }, [editingCourse, usesDates]);
+  const validateAndClamp = (value, min2, max2, defaultValue) => {
+    const cleaned = value.replace(/[^0-9-]/g, "");
+    if (cleaned === "" || cleaned === "-") {
+      return defaultValue;
+    }
+    const num = parseInt(cleaned, 10);
+    if (isNaN(num)) {
+      return defaultValue;
+    }
+    if (num < min2) return min2.toString();
+    if (num > max2) return max2.toString();
+    return num.toString();
+  };
+  const handleDayChange = (value) => {
+    setDayOfWeek(validateAndClamp(value, 2, 8, "2"));
+  };
+  const handleLessonStartChange = (value) => {
+    setLessonStart(validateAndClamp(value, 1, 10, "1"));
+  };
+  const handleLessonEndChange = (value) => {
+    setLessonEnd(validateAndClamp(value, 1, 10, "10"));
+  };
+  const handleWeekStartChange = (value) => {
+    setWeekStart(validateAndClamp(value, 1, 52, "1"));
+  };
+  const handleWeekEndChange = (value) => {
+    setWeekEnd(validateAndClamp(value, 1, 52, "2"));
+  };
+  const handleAdd = () => {
+    if (!courseName.trim()) {
+      alert("Vui lòng nhập tên môn học");
+      return;
+    }
+    const day = parseInt(dayOfWeek, 10);
+    const lsStart = parseInt(lessonStart, 10);
+    const lsEnd = parseInt(lessonEnd, 10);
+    if (isNaN(day) || day < 2 || day > 8) {
+      alert("Thứ phải từ 2 đến 8");
+      return;
+    }
+    if (isNaN(lsStart) || lsStart < 1 || lsStart > 15) {
+      alert("Tiết bắt đầu phải từ 1 đến 15");
+      return;
+    }
+    if (isNaN(lsEnd) || lsEnd < 1 || lsEnd > 15) {
+      alert("Tiết kết thúc phải từ 1 đến 15");
+      return;
+    }
+    if (lsStart > lsEnd) {
+      alert("Tiết bắt đầu phải nhỏ hơn hoặc bằng tiết kết thúc");
+      return;
+    }
+    let courseData;
+    if (usesDates) {
+      if (!dateStart || !dateEnd) {
+        alert("Vui lòng chọn khoảng ngày");
+        return;
+      }
+      const startDate = new Date(dateStart);
+      const endDate = new Date(dateEnd);
+      if (startDate > endDate) {
+        alert("Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc");
+        return;
+      }
+      const formatDate = (date) => {
+        const dd = String(date.getDate()).padStart(2, "0");
+        const mm = String(date.getMonth() + 1).padStart(2, "0");
+        const yyyy = date.getFullYear();
+        return `${dd}/${mm}/${yyyy}`;
+      };
+      const dateRange = `${formatDate(startDate)} - ${formatDate(endDate)}`;
+      courseData = {
+        id: editingCourse ? editingCourse.id : `custom-${Date.now()}`,
+        name: courseName.trim(),
+        instructor: instructor.trim(),
+        time: [
+          {
+            date: day,
+            class: room.trim(),
+            lsStart,
+            lsEnd
+          }
+        ],
+        weekRange: [],
+        originalDateRanges: [dateRange],
+        displayTimeInfo: dateRange
+      };
+    } else {
+      const wkStart = parseInt(weekStart, 10);
+      const wkEnd = parseInt(weekEnd, 10);
+      if (isNaN(wkStart) || wkStart < 1) {
+        alert("Tuần bắt đầu phải lớn hơn 0");
+        return;
+      }
+      if (isNaN(wkEnd) || wkEnd < 1) {
+        alert("Tuần kết thúc phải lớn hơn 0");
+        return;
+      }
+      if (wkStart > wkEnd) {
+        alert("Tuần bắt đầu phải nhỏ hơn hoặc bằng tuần kết thúc");
+        return;
+      }
+      courseData = {
+        id: editingCourse ? editingCourse.id : `custom-${Date.now()}`,
+        name: courseName.trim(),
+        instructor: instructor.trim(),
+        time: [
+          {
+            date: day,
+            class: room.trim(),
+            lsStart,
+            lsEnd
+          }
+        ],
+        weekRange: [
+          {
+            from: wkStart,
+            to: wkEnd
+          }
+        ]
+      };
+    }
+    onAdd(courseData);
+    setCourseName("");
+    setInstructor("");
+    setRoom("");
+    setDayOfWeek("2");
+    setLessonStart("1");
+    setLessonEnd("10");
+    setWeekStart("1");
+    setWeekEnd("2");
+    setDateStart("");
+    setDateEnd("");
+    setOpen(false);
+    if (editingCourse && onEditComplete) {
+      onEditComplete();
+    }
+  };
+  const handleReset = () => {
+    setCourseName("");
+    setInstructor("");
+    setRoom("");
+    setDayOfWeek("2");
+    setLessonStart("1");
+    setLessonEnd("10");
+    setWeekStart("1");
+    setWeekEnd("2");
+  };
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(s$5, { open, onOpenChange: setOpen, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(n$4, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(o$j, { variant: "soft", color: "green", children: "Thêm lịch tùy chỉnh" }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(p$d, { maxWidth: "450px", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(g$2, { children: editingCourse ? "Chỉnh sửa lịch học" : "Thêm lịch tùy chỉnh" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(p$m, { direction: "column", gap: "3", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { as: "div", size: "2", mb: "1", weight: "bold", children: "Tên môn học" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            u$1,
+            {
+              placeholder: "Tên môn học",
+              value: courseName,
+              onChange: (e2) => setCourseName(e2.target.value)
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { as: "div", size: "2", mb: "1", weight: "bold", children: "Tên giảng viên" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            u$1,
+            {
+              placeholder: "Tên giảng viên",
+              value: instructor,
+              onChange: (e2) => setInstructor(e2.target.value)
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { as: "div", size: "2", mb: "1", weight: "bold", children: "Phòng" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            u$1,
+            {
+              placeholder: "Phòng",
+              value: room,
+              onChange: (e2) => setRoom(e2.target.value)
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(p$m, { gap: "3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { style: { flex: 1 }, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { as: "div", size: "2", mb: "1", weight: "bold", children: "Thứ (2-8)" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              u$1,
+              {
+                type: "text",
+                inputMode: "numeric",
+                value: dayOfWeek,
+                onChange: (e2) => handleDayChange(e2.target.value),
+                onBlur: (e2) => handleDayChange(e2.target.value),
+                onFocus: (e2) => e2.target.select()
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { style: { flex: 1 }, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { as: "div", size: "2", mb: "1", weight: "bold", children: "Từ tiết (1-15)" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              u$1,
+              {
+                type: "text",
+                inputMode: "numeric",
+                value: lessonStart,
+                onChange: (e2) => handleLessonStartChange(e2.target.value),
+                onBlur: (e2) => handleLessonStartChange(e2.target.value),
+                onFocus: (e2) => e2.target.select()
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { style: { flex: 1 }, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { as: "div", size: "2", mb: "1", weight: "bold", children: "Đến (1-15)" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              u$1,
+              {
+                type: "text",
+                inputMode: "numeric",
+                value: lessonEnd,
+                onChange: (e2) => handleLessonEndChange(e2.target.value),
+                onBlur: (e2) => handleLessonEndChange(e2.target.value),
+                onFocus: (e2) => e2.target.select()
+              }
+            )
+          ] })
+        ] }),
+        usesDates ? /* @__PURE__ */ jsxRuntimeExports.jsxs(p$m, { gap: "3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { style: { flex: 1 }, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { as: "div", size: "2", mb: "1", weight: "bold", children: "Từ ngày" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              u$1,
+              {
+                type: "date",
+                value: dateStart,
+                onChange: (e2) => setDateStart(e2.target.value)
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { style: { flex: 1 }, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { as: "div", size: "2", mb: "1", weight: "bold", children: "Đến ngày" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              u$1,
+              {
+                type: "date",
+                value: dateEnd,
+                onChange: (e2) => setDateEnd(e2.target.value)
+              }
+            )
+          ] })
+        ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(p$m, { gap: "3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { style: { flex: 1 }, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { as: "div", size: "2", mb: "1", weight: "bold", children: "Từ tuần" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              u$1,
+              {
+                type: "text",
+                inputMode: "numeric",
+                value: weekStart,
+                onChange: (e2) => handleWeekStartChange(e2.target.value),
+                onBlur: (e2) => handleWeekStartChange(e2.target.value),
+                onFocus: (e2) => e2.target.select()
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { style: { flex: 1 }, children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { as: "div", size: "2", mb: "1", weight: "bold", children: "Đến tuần" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              u$1,
+              {
+                type: "text",
+                inputMode: "numeric",
+                value: weekEnd,
+                onChange: (e2) => handleWeekEndChange(e2.target.value),
+                onBlur: (e2) => handleWeekEndChange(e2.target.value),
+                onFocus: (e2) => e2.target.select()
+              }
+            )
+          ] })
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(p$m, { gap: "3", mt: "4", justify: "end", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(D, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(o$j, { variant: "soft", color: "gray", children: "Hủy" }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(o$j, { variant: "soft", color: "red", onClick: handleReset, children: "Reset" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(o$j, { onClick: handleAdd, children: editingCourse ? "Cập nhật" : "Thêm" })
+      ] })
+    ] })
   ] });
 }
 function parseUFLFormat(input) {
@@ -32907,11 +33394,19 @@ function App() {
   const [onlyToday, setOnlyToday] = reactExports.useState(localStorage.getItem("onlyToday") === "true" || false);
   const [mergeTimeRanges, setMergeTimeRanges] = reactExports.useState(localStorage.getItem("mergeTimeRanges") !== "false");
   const [week, setWeek] = reactExports.useState(localStorage.getItem("week") ? Number(localStorage.getItem("week")) : 0);
+  const [byDateRange, setByDateRange] = reactExports.useState(localStorage.getItem("byDateRange") === "true" || false);
+  const [dateRangeStart, setDateRangeStart] = reactExports.useState(localStorage.getItem("dateRangeStart") || "");
+  const [dateRangeEnd, setDateRangeEnd] = reactExports.useState(localStorage.getItem("dateRangeEnd") || "");
   const [data, setData] = reactExports.useState(localStorage.getItem("data") || "");
+  const [customCourses, setCustomCourses] = reactExports.useState(() => {
+    const saved = localStorage.getItem(`customCourses_${selectedUniversity.id}`);
+    return saved ? JSON.parse(saved) : [];
+  });
   const [customFeatures, setCustomFeatures] = reactExports.useState(() => {
     const saved = localStorage.getItem("customFeatures");
     return saved ? JSON.parse(saved) : {};
   });
+  const [editingCourse, setEditingCourse] = reactExports.useState(null);
   const tableRef = reactExports.useRef(null);
   reactExports.useEffect(() => {
     localStorage.setItem("selectedUniversity", selectedUniversity.id);
@@ -32919,6 +33414,29 @@ function App() {
   reactExports.useEffect(() => {
     localStorage.setItem("customFeatures", JSON.stringify(customFeatures));
   }, [customFeatures]);
+  reactExports.useEffect(() => {
+    localStorage.setItem(`customCourses_${selectedUniversity.id}`, JSON.stringify(customCourses));
+  }, [customCourses, selectedUniversity.id]);
+  reactExports.useEffect(() => {
+    const saved = localStorage.getItem(`customCourses_${selectedUniversity.id}`);
+    setCustomCourses(saved ? JSON.parse(saved) : []);
+  }, [selectedUniversity.id]);
+  const handleAddCustomCourse = (course) => {
+    if (editingCourse) {
+      setCustomCourses((prev) => prev.map((c2) => c2.id === editingCourse.id ? course : c2));
+      setEditingCourse(null);
+    } else {
+      setCustomCourses((prev) => [...prev, course]);
+    }
+  };
+  const handleDeleteCourse = (courseId) => {
+    if (confirm("Bạn có chắc muốn xóa môn học này?")) {
+      setCustomCourses((prev) => prev.filter((c2) => c2.id !== courseId));
+    }
+  };
+  const handleEditCourse = (course) => {
+    setEditingCourse(course);
+  };
   const handleUniversityChange = (university) => {
     var _a2;
     setSelectedUniversity(university);
@@ -32949,6 +33467,15 @@ function App() {
   reactExports.useEffect(() => {
     localStorage.setItem("mergeTimeRanges", mergeTimeRanges.toString());
   }, [mergeTimeRanges]);
+  reactExports.useEffect(() => {
+    localStorage.setItem("byDateRange", byDateRange.toString());
+  }, [byDateRange]);
+  reactExports.useEffect(() => {
+    localStorage.setItem("dateRangeStart", dateRangeStart);
+  }, [dateRangeStart]);
+  reactExports.useEffect(() => {
+    localStorage.setItem("dateRangeEnd", dateRangeEnd);
+  }, [dateRangeEnd]);
   const mergeSimilarCourses = (courses) => {
     const merged = [];
     const processed = /* @__PURE__ */ new Set();
@@ -33021,16 +33548,39 @@ function App() {
         }
       });
     }
+    d2.push(...customCourses);
     if (mergeTimeRanges) {
       return mergeSimilarCourses(d2);
     }
     return d2;
-  }, [data, selectedUniversity, mergeTimeRanges]);
+  }, [data, selectedUniversity, mergeTimeRanges, customCourses]);
   const dt = reactExports.useMemo(() => {
     const universityTimeRange = getUniversityTimeRange(selectedUniversity);
-    return /* @__PURE__ */ jsxRuntimeExports.jsx(jsxRuntimeExports.Fragment, { children: universityTimeRange.filter((tra) => !showOnlyAvailable || scheduleData.some(
-      (d2) => d2.time.some((t2) => t2.lsStart <= tra.lessonNumber && t2.lsEnd >= tra.lessonNumber && (!byWeek || d2.weekRange.some((wr) => wr.from <= week && wr.to >= week)))
-    )).map((time2, tr) => /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
+    const isInDateRange = (course) => {
+      if (!byDateRange || !dateRangeStart || !dateRangeEnd) return true;
+      const startDate = new Date(dateRangeStart);
+      const endDate = new Date(dateRangeEnd);
+      if (course.originalDateRanges && course.originalDateRanges.length > 0) {
+        return course.originalDateRanges.some((range) => {
+          const match = range.match(/(\d{2})\/(\d{2})\/(\d{4})\s*-\s*(\d{2})\/(\d{2})\/(\d{4})/);
+          if (match) {
+            const courseStart = /* @__PURE__ */ new Date(`${match[3]}-${match[2]}-${match[1]}`);
+            const courseEnd = /* @__PURE__ */ new Date(`${match[6]}-${match[5]}-${match[4]}`);
+            return !(courseEnd < startDate || courseStart > endDate);
+          }
+          return false;
+        });
+      }
+      return true;
+    };
+    const filteredTimeRange = showOnlyAvailable ? universityTimeRange.filter(
+      (timeSlot) => scheduleData.some(
+        (course) => course.time.some(
+          (t2) => t2.lsStart <= timeSlot.lessonNumber && t2.lsEnd >= timeSlot.lessonNumber && (!byWeek || course.weekRange.some((wr) => wr.from <= week && wr.to >= week)) && isInDateRange(course)
+        )
+      )
+    ) : universityTimeRange;
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(jsxRuntimeExports.Fragment, { children: filteredTimeRange.map((time2, tr) => /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(p$w, { size: "1", style: { fontSize: "12px", color: "gray" }, color: "gray", children: [
           "Tiết ",
@@ -33043,23 +33593,61 @@ function App() {
           time2.end
         ] })
       ] }),
-      Array.from({ length: 7 }, (_, i) => i + 2).map((day) => (onlyToday && (day === (/* @__PURE__ */ new Date()).getDay() + 1 || day === 8 && (/* @__PURE__ */ new Date()).getDay() === 0) || !onlyToday) && /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: scheduleData.filter(
-        (d2) => d2.time.some((t2) => t2.date === day && t2.lsStart <= time2.lessonNumber && t2.lsEnd >= time2.lessonNumber && (!byWeek || d2.weekRange.some((wr) => wr.from <= week && wr.to >= week)))
-      ).map((d2, ind) => /* @__PURE__ */ jsxRuntimeExports.jsx(
-        p$p,
-        {
-          className: tbCls.card,
-          children: /* @__PURE__ */ jsxRuntimeExports.jsxs(p$p, { style: { display: "flex", flexDirection: "column", gap: "1px" }, children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { weight: "bold", children: d2.name }),
-            d2.displayTimeInfo && /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { size: "1", style: { fontSize: "12px", color: "gray" }, color: "gray", children: d2.displayTimeInfo }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { size: "1", style: { fontSize: "10px", color: "grey" }, color: "gray", children: d2.instructor }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { weight: "bold", size: "1", style: { fontSize: "14px" }, color: "gray", children: d2.time.filter((t2) => t2.date === day && t2.lsStart <= time2.lessonNumber && t2.lsEnd >= time2.lessonNumber).map((t2) => t2.class).join(", ") })
-          ] })
-        },
-        d2.id + day + ind
-      )) }, day))
+      Array.from({ length: 7 }, (_, i) => i + 2).map((day) => (onlyToday && (day === (/* @__PURE__ */ new Date()).getDay() + 1 || day === 8 && (/* @__PURE__ */ new Date()).getDay() === 0) || !onlyToday) && /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: (() => {
+        const coursesInSlot = scheduleData.filter(
+          (d2) => d2.time.some((t2) => t2.date === day && t2.lsStart <= time2.lessonNumber && t2.lsEnd >= time2.lessonNumber && (!byWeek || d2.weekRange.some((wr) => wr.from <= week && wr.to >= week))) && isInDateRange(d2)
+        );
+        const hasConflict = coursesInSlot.length > 1;
+        return coursesInSlot.map((d2, ind) => {
+          const isCustomCourse = d2.id.startsWith("custom-");
+          const courseCard = /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            p$p,
+            {
+              className: tbCls.card,
+              style: {
+                marginBottom: hasConflict && ind < coursesInSlot.length - 1 ? "4px" : void 0,
+                position: "relative"
+              },
+              children: [
+                hasConflict && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  p$p,
+                  {
+                    style: {
+                      position: "absolute",
+                      top: "4px",
+                      right: "4px",
+                      fontSize: "16px",
+                      cursor: "help"
+                    },
+                    title: "Trùng lịch học",
+                    children: "⚠️"
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(p$p, { style: { display: "flex", flexDirection: "column", gap: "1px" }, children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { weight: "bold", children: d2.name }),
+                  d2.displayTimeInfo && /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { size: "1", style: { fontSize: "12px", color: "gray" }, color: "gray", children: d2.displayTimeInfo }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { size: "1", style: { fontSize: "10px", color: "grey" }, color: "gray", children: d2.instructor }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { weight: "bold", size: "1", style: { fontSize: "14px" }, color: "gray", children: d2.time.filter((t2) => t2.date === day && t2.lsStart <= time2.lessonNumber && t2.lsEnd >= time2.lessonNumber).map((t2) => t2.class).join(", ") })
+                ] })
+              ]
+            },
+            d2.id + day + ind
+          );
+          if (isCustomCourse) {
+            return /* @__PURE__ */ jsxRuntimeExports.jsxs(h$2, { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(S$2, { children: courseCard }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(v$5, { children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(R$2, { onClick: () => handleEditCourse(d2), children: "✏️ Chỉnh sửa" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(W, {}),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(R$2, { color: "red", onClick: () => handleDeleteCourse(d2.id), children: "🗑️ Xóa" })
+              ] })
+            ] }, d2.id + day + ind);
+          }
+          return courseCard;
+        });
+      })() }, day))
     ] }, tr)) });
-  }, [week, byWeek, scheduleData, showOnlyAvailable, onlyToday, selectedUniversity]);
+  }, [week, byWeek, byDateRange, dateRangeStart, dateRangeEnd, scheduleData, showOnlyAvailable, onlyToday, selectedUniversity]);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(p$g, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(o$i, { my: "3", mx: "3", style: { width: "calc(100% - 2rem)", padding: "1.5rem" }, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(p$m, { direction: "column", gap: "1", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -33088,6 +33676,12 @@ function App() {
           setByWeek,
           week,
           setWeek,
+          byDateRange,
+          setByDateRange,
+          dateRangeStart,
+          setDateRangeStart,
+          dateRangeEnd,
+          setDateRangeEnd,
           showOnlyAvailable,
           setShowOnlyAvailable,
           onlyToday,
@@ -33100,12 +33694,22 @@ function App() {
       ),
       /* @__PURE__ */ jsxRuntimeExports.jsxs(p$m, { align: "center", gap: "1", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(
+          AddCustomCourse,
+          {
+            onAdd: handleAddCustomCourse,
+            editingCourse,
+            onEditComplete: () => setEditingCourse(null),
+            university: selectedUniversity
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
           o$j,
           {
             color: "red",
             variant: "soft",
             onClick: () => {
               setData("");
+              setCustomCourses([]);
               setByWeek(false);
               setWeek(0);
               setShowOnlyAvailable(false);
@@ -33210,4 +33814,4 @@ const ThemeMatcher = ({ children }) => {
 clientExports.createRoot(document.getElementById("root")).render(
   /* @__PURE__ */ jsxRuntimeExports.jsx(reactExports.StrictMode, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(ThemeMatcher, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(App, {}) }) })
 );
-//# sourceMappingURL=index-D58tQ6ff.js.map
+//# sourceMappingURL=index-5l_dQ-r7.js.map

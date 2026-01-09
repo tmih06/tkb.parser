@@ -108,7 +108,7 @@ export default function App() {
         setByWeek(university.features.byWeek && byWeek);
         setShowOnlyAvailable(university.features.showOnlyAvailable && showOnlyAvailable);
         setOnlyToday(university.features.onlyToday && onlyToday);
-        
+
         // Initialize custom features with default values
         const newCustomFeatures: Record<string, boolean> = {};
         university.features.customFeatures?.forEach(feature => {
@@ -160,18 +160,18 @@ export default function App() {
 
         for (const course of courses) {
             const courseKey = `${course.name}_${course.instructor}_${course.time.map(t => `${t.date}_${t.lsStart}_${t.lsEnd}`).join('|')}`;
-            
+
             if (processed.has(courseKey)) continue;
-            
+
             // Find all courses with same name, instructor, and time slots
-            const similarCourses = courses.filter(c => 
-                c.name === course.name && 
+            const similarCourses = courses.filter(c =>
+                c.name === course.name &&
                 c.instructor === course.instructor &&
                 c.time.length === course.time.length &&
-                c.time.every((t, i) => 
-                    course.time[i] && 
-                    t.date === course.time[i].date && 
-                    t.lsStart === course.time[i].lsStart && 
+                c.time.every((t, i) =>
+                    course.time[i] &&
+                    t.date === course.time[i].date &&
+                    t.lsStart === course.time[i].lsStart &&
                     t.lsEnd === course.time[i].lsEnd
                 )
             );
@@ -180,7 +180,7 @@ export default function App() {
                 // Merge date ranges
                 const allOriginalRanges = similarCourses.flatMap(c => c.originalDateRanges || []);
                 const allWeekRanges = similarCourses.flatMap(c => c.weekRange);
-                
+
                 // Create merged time info
                 let mergedTimeInfo = '';
                 if (allOriginalRanges.length > 0) {
@@ -205,13 +205,13 @@ export default function App() {
                     if (sortedRanges.length > 0) {
                         const firstRange = sortedRanges[0]!;
                         const lastRange = sortedRanges[sortedRanges.length - 1]!;
-                        
+
                         // Format dates from dd/mm/yyyy to dd/mm/yy
                         const formatDate = (dateStr: string) => {
                             const parts = dateStr.split('/');
                             return `${parts[0]}/${parts[1]}/${parts[2].slice(-2)}`;
                         };
-                        
+
                         mergedTimeInfo = `${formatDate(firstRange.startStr)} - ${formatDate(lastRange.endStr)}`;
                     }
                 }
@@ -224,7 +224,7 @@ export default function App() {
                 };
 
                 merged.push(mergedCourse);
-                
+
                 // Mark all similar courses as processed
                 similarCourses.forEach(c => {
                     const key = `${c.name}_${c.instructor}_${c.time.map(t => `${t.date}_${t.lsStart}_${t.lsEnd}`).join('|')}`;
@@ -241,7 +241,7 @@ export default function App() {
 
     const scheduleData = useMemo<TKBType[]>(() => {
         const d: TKBType[] = [];
-        
+
         if (selectedUniversity.id === 'ufl') {
             // For UFL, parse the entire input at once since each line is a complete course
             const courses = parseUFLFormat(data);
@@ -249,7 +249,7 @@ export default function App() {
         } else {
             // For other universities, parse line by line
             const universityParser = createUniversityParser(selectedUniversity);
-            
+
             data.replace(/\r\n/g, "\n").split('\n').map((line) => {
                 if (line === '') return null;
 
@@ -273,14 +273,14 @@ export default function App() {
 
     const dt = useMemo(() => {
         const universityTimeRange = getUniversityTimeRange(selectedUniversity);
-        
+
         // Helper function to check if course is in date range
         const isInDateRange = (course: TKBType) => {
             if (!byDateRange || !dateRangeStart || !dateRangeEnd) return true;
-            
+
             const startDate = new Date(dateRangeStart);
             const endDate = new Date(dateRangeEnd);
-            
+
             // For UFL courses with originalDateRanges
             if (course.originalDateRanges && course.originalDateRanges.length > 0) {
                 return course.originalDateRanges.some(range => {
@@ -294,17 +294,17 @@ export default function App() {
                     return false;
                 });
             }
-            
+
             return true;
         };
-        
+
         // Filter time slots based on showOnlyAvailable
-        const filteredTimeRange = showOnlyAvailable 
-            ? universityTimeRange.filter((timeSlot) => 
+        const filteredTimeRange = showOnlyAvailable
+            ? universityTimeRange.filter((timeSlot) =>
                 scheduleData.some(course =>
-                    course.time.some(t => 
-                        t.lsStart <= timeSlot.lessonNumber && 
-                        t.lsEnd >= timeSlot.lessonNumber && 
+                    course.time.some(t =>
+                        t.lsStart <= timeSlot.lessonNumber &&
+                        t.lsEnd >= timeSlot.lessonNumber &&
                         (!byWeek || course.weekRange.some(wr => wr.from <= week && wr.to >= week)) &&
                         isInDateRange(course)
                     )
@@ -332,19 +332,19 @@ export default function App() {
 
                                     return coursesInSlot.map((d, ind) => {
                                         const isCustomCourse = d.id.startsWith('custom-');
-                                        
+
                                         const courseCard = (
-                                            <Box 
+                                            <Box
                                                 className={tbCls.card}
                                                 key={d.id + day + ind}
-                                                style={{ 
+                                                style={{
                                                     marginBottom: hasConflict && ind < coursesInSlot.length - 1 ? '4px' : undefined,
                                                     position: 'relative'
                                                 }}
                                             >
                                                 {hasConflict && (
-                                                    <Box 
-                                                        style={{ 
+                                                    <Box
+                                                        style={{
                                                             position: 'absolute',
                                                             top: '4px',
                                                             right: '4px',
@@ -362,7 +362,7 @@ export default function App() {
                                                         <Text size="1" style={{ fontSize: '12px', color: 'gray' }} color="gray">{d.displayTimeInfo}</Text>
                                                     )}
                                                     <Text size="1" style={{ fontSize: '10px', color: 'grey' }} color="gray">{d.instructor}</Text>
-                                                    <Text weight="bold" size="1" style={{ fontSize: '14px'}} color="gray">{d.time.filter(t => t.date === day && t.lsStart <= time.lessonNumber && t.lsEnd >= time.lessonNumber).map(t => t.class).join(', ')}</Text>
+                                                    <Text weight="bold" size="1" style={{ fontSize: '14px' }} color="gray">{d.time.filter(t => t.date === day && t.lsStart <= time.lessonNumber && t.lsEnd >= time.lessonNumber).map(t => t.class).join(', ')}</Text>
                                                 </Box>
                                             </Box>
                                         );
@@ -395,22 +395,27 @@ export default function App() {
                 ))}
             </>
         );
-    }, [week, byWeek, byDateRange, dateRangeStart, dateRangeEnd, scheduleData, showOnlyAvailable, onlyToday, selectedUniversity]);    return (
+    }, [week, byWeek, byDateRange, dateRangeStart, dateRangeEnd, scheduleData, showOnlyAvailable, onlyToday, selectedUniversity]); return (
         <>
             <Container>
                 <Card my="3" mx="3" style={{ width: 'calc(100% - 2rem)', padding: '1.5rem' }}>
                     <Flex direction="column" gap="1">
-                        <UniversitySwitcher 
+                        <UniversitySwitcher
                             selectedUniversity={selectedUniversity}
                             onUniversityChange={handleUniversityChange}
                         />
+                        {selectedUniversity.id === 'dut' && (
+                            <Text size="2" color="blue" style={{ marginTop: '0.5rem' }}>
+                                ℹ️ Chấp nhận cả định dạng của thời khóa biểu trong khi đăng kí tín
+                            </Text>
+                        )}
                         <TextArea
                             size="1"
                             value={data}
                             onChange={(e) => setData(e.currentTarget.value)}
-                            style={{ margin: '1rem 0', fontSize: '12px', height: '200px', fontFamily: 'monospace, Consolas, source-code-pro, Menlo, Monaco, Lucida Console, Courier New, sans-serif' }} 
-                            resize="vertical" 
-                            placeholder={selectedUniversity.placeholder} 
+                            style={{ margin: '1rem 0', fontSize: '12px', height: '200px', fontFamily: 'monospace, Consolas, source-code-pro, Menlo, Monaco, Lucida Console, Courier New, sans-serif' }}
+                            resize="vertical"
+                            placeholder={selectedUniversity.placeholder}
                         />
                         <UniversityFeatures
                             selectedUniversity={selectedUniversity}
@@ -433,9 +438,9 @@ export default function App() {
                             customFeatures={customFeatures}
                             setCustomFeatures={setCustomFeatures}
                         />
-                        <Flex align="center" gap="1">
-                            <AddCustomCourse 
-                                onAdd={handleAddCustomCourse} 
+                        <Flex align="center" gap="2" wrap="wrap">
+                            <AddCustomCourse
+                                onAdd={handleAddCustomCourse}
                                 editingCourse={editingCourse}
                                 onEditComplete={() => setEditingCourse(null)}
                                 university={selectedUniversity}

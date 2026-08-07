@@ -27181,7 +27181,7 @@ a {
     width: 44px;
     height: 44px;
   }
-}._table_sczgv_1 {
+}._table_xd4tw_1 {
   --tb-border: var(--radius-4);
   --row-bd: 1px solid var(--gray-a5);
   width: 100%;
@@ -27192,36 +27192,85 @@ a {
   background-color: var(--color-panel);
   table-layout: auto;
 }
-._table_sczgv_1 thead {
+._table_xd4tw_1 thead {
   position: sticky;
   top: 0;
   z-index: 1;
 }
-._table_sczgv_1 thead tr {
+._table_xd4tw_1 thead tr {
   background-color: var(--accent-3);
 }
-._table_sczgv_1 thead tr th {
+._table_xd4tw_1 thead tr th {
   padding: 0.5rem 1rem;
   min-width: 220px;
   border-radius: 4px;
 }
-._table_sczgv_1 thead tr th:first-child {
+._table_xd4tw_1 thead tr th:first-child {
   min-width: 120px;
 }
-._table_sczgv_1 tbody tr td {
+._table_xd4tw_1 tbody tr td {
   padding: 0.3rem;
   border-bottom: var(--row-bd);
   border-left: var(--row-bd);
 }
-._table_sczgv_1 tbody tr td:first-child {
+._table_xd4tw_1 tbody tr td:first-child {
   border-left: none;
 }
-._table_sczgv_1 tbody tr td ._card_sczgv_36 {
+._table_xd4tw_1 tbody tr td ._card_xd4tw_36 {
   padding: 0.8rem;
   border-radius: 6px;
   background-color: var(--orange-surface);
   border: 1px solid var(--gray-a5);
 }
-._table_sczgv_1 tbody tr:last-child td {
+._table_xd4tw_1 tbody tr:last-child td {
   border-bottom: none;
+}
+
+._emptyCell_xd4tw_46 {
+  cursor: cell;
+}
+._emptyCell_xd4tw_46:hover, ._emptyCell_xd4tw_46:focus-visible {
+  background: var(--accent-a3);
+  outline: 2px solid var(--accent-a7);
+  outline-offset: -2px;
+}
+
+._fit_xd4tw_55 {
+  table-layout: fixed;
+}
+._fit_xd4tw_55 thead tr th {
+  min-width: 0;
+  width: auto;
+  padding: 0.5rem 0.3rem;
+  overflow-wrap: anywhere;
+}
+._fit_xd4tw_55 thead tr th:first-child {
+  width: 8rem;
+  min-width: 0;
+}
+._fit_xd4tw_55 tbody tr td {
+  min-width: 0;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+._fit_xd4tw_55 tbody tr td ._card_xd4tw_36 {
+  padding: 0.45rem;
+}
+
+@media (max-width: 768px) {
+  ._fit_xd4tw_55 {
+    font-size: 11px;
+  }
+  ._fit_xd4tw_55 thead tr th {
+    padding: 0.35rem 0.15rem;
+  }
+  ._fit_xd4tw_55 thead tr th:first-child {
+    width: 5rem;
+  }
+  ._fit_xd4tw_55 tbody tr td {
+    padding: 0.15rem;
+  }
+  ._fit_xd4tw_55 tbody tr td ._card_xd4tw_36 {
+    padding: 0.25rem;
+  }
 }

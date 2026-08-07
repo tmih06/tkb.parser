@@ -23778,8 +23778,12 @@ function Footer() {
       (/* @__PURE__ */ new Date()).getUTCFullYear(),
       " ",
       /* @__PURE__ */ jsxRuntimeExports.jsx(e$6, { target: "_blank", color: "gray", href: "https://github.com/tmih06", children: "tmih06" }),
+      " ",
+      /* @__PURE__ */ jsxRuntimeExports.jsx(e$6, { target: "_blank", color: "gray", href: "https://github.com/QuangNew", children: "QuangNew" }),
       " forked from ",
       /* @__PURE__ */ jsxRuntimeExports.jsx(e$6, { target: "_blank", color: "gray", href: "https://github.com/michioxd/dut.tkb.parser", children: "dut.tkb.parser" }),
+      " by ",
+      /* @__PURE__ */ jsxRuntimeExports.jsx(e$6, { target: "_blank", color: "gray", href: "https://github.com/michioxd", children: "Michioxd" }),
       "."
     ] })
   ] });
@@ -23988,6 +23992,8 @@ function UniversityFeatures({
   setOnlyToday,
   mergeTimeRanges,
   setMergeTimeRanges,
+  autoFitSchedule,
+  setAutoFitSchedule,
   customFeatures,
   setCustomFeatures
 }) {
@@ -24005,7 +24011,7 @@ function UniversityFeatures({
   }, gap: "2", style: { marginBottom: "1rem" }, direction: {
     initial: "column",
     sm: "row"
-  }, children: [
+  }, wrap: "wrap", children: [
     features.byWeek && /* @__PURE__ */ jsxRuntimeExports.jsxs(p$m, { gap: "2", align: "center", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         c$3,
@@ -24082,6 +24088,16 @@ function UniversityFeatures({
       ),
       "Chỉ hiển thị lịch học hôm nay"
     ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(p$m, { gap: "2", align: "center", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        c$3,
+        {
+          checked: autoFitSchedule,
+          onCheckedChange: (e2) => setAutoFitSchedule(Boolean(e2))
+        }
+      ),
+      "Tự động co vừa màn hình"
+    ] }),
     selectedUniversity.id === "ufl" && /* @__PURE__ */ jsxRuntimeExports.jsxs(p$m, { gap: "2", align: "center", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         c$3,
@@ -24104,7 +24120,14 @@ function UniversityFeatures({
     ] }, feature.id))
   ] });
 }
-function AddCustomCourse({ onAdd, editingCourse, onEditComplete, university }) {
+function AddCustomCourse({
+  onAdd,
+  editingCourse,
+  initialCourse,
+  editingTimeIndex = 0,
+  onEditComplete,
+  university
+}) {
   const [open, setOpen] = reactExports.useState(false);
   const [courseName, setCourseName] = reactExports.useState("");
   const [instructor, setInstructor] = reactExports.useState("");
@@ -24117,28 +24140,31 @@ function AddCustomCourse({ onAdd, editingCourse, onEditComplete, university }) {
   const [dateStart, setDateStart] = reactExports.useState("");
   const [dateEnd, setDateEnd] = reactExports.useState("");
   const usesDates = university.features.byDateRange || false;
+  const activeCourse = editingCourse ?? initialCourse;
+  const maxLesson = Math.max(...university.timeSlots.map((slot) => slot.lessonNumber));
   reactExports.useEffect(() => {
-    var _a2, _b2, _c, _d, _e, _f;
-    if (editingCourse) {
-      setCourseName(editingCourse.name);
-      setInstructor(editingCourse.instructor || "");
-      setRoom(((_a2 = editingCourse.time[0]) == null ? void 0 : _a2.class) || "");
-      setDayOfWeek(((_b2 = editingCourse.time[0]) == null ? void 0 : _b2.date.toString()) || "2");
-      setLessonStart(((_c = editingCourse.time[0]) == null ? void 0 : _c.lsStart.toString()) || "1");
-      setLessonEnd(((_d = editingCourse.time[0]) == null ? void 0 : _d.lsEnd.toString()) || "10");
-      if (usesDates && editingCourse.originalDateRanges && editingCourse.originalDateRanges.length > 0) {
-        const match = editingCourse.originalDateRanges[0].match(/(\d{2})\/(\d{2})\/(\d{4})\s*-\s*(\d{2})\/(\d{2})\/(\d{4})/);
+    var _a2, _b2;
+    if (activeCourse) {
+      const selectedTime = activeCourse.time[editingTimeIndex] ?? activeCourse.time[0];
+      setCourseName(activeCourse.name);
+      setInstructor(activeCourse.instructor || "");
+      setRoom((selectedTime == null ? void 0 : selectedTime.class) || "");
+      setDayOfWeek((selectedTime == null ? void 0 : selectedTime.date.toString()) || "2");
+      setLessonStart((selectedTime == null ? void 0 : selectedTime.lsStart.toString()) || "1");
+      setLessonEnd((selectedTime == null ? void 0 : selectedTime.lsEnd.toString()) || "1");
+      if (usesDates && activeCourse.originalDateRanges && activeCourse.originalDateRanges.length > 0) {
+        const match = activeCourse.originalDateRanges[0].match(/(\d{2})\/(\d{2})\/(\d{4})\s*-\s*(\d{2})\/(\d{2})\/(\d{4})/);
         if (match) {
           setDateStart(`${match[3]}-${match[2]}-${match[1]}`);
           setDateEnd(`${match[6]}-${match[5]}-${match[4]}`);
         }
       } else {
-        setWeekStart(((_e = editingCourse.weekRange[0]) == null ? void 0 : _e.from.toString()) || "1");
-        setWeekEnd(((_f = editingCourse.weekRange[0]) == null ? void 0 : _f.to.toString()) || "2");
+        setWeekStart(((_a2 = activeCourse.weekRange[0]) == null ? void 0 : _a2.from.toString()) || "1");
+        setWeekEnd(((_b2 = activeCourse.weekRange[0]) == null ? void 0 : _b2.to.toString()) || "1");
       }
       setOpen(true);
     }
-  }, [editingCourse, usesDates]);
+  }, [activeCourse, editingTimeIndex, usesDates]);
   const validateAndClamp = (value, min2, max2, defaultValue) => {
     const cleaned = value.replace(/[^0-9-]/g, "");
     if (cleaned === "" || cleaned === "-") {
@@ -24156,10 +24182,10 @@ function AddCustomCourse({ onAdd, editingCourse, onEditComplete, university }) {
     setDayOfWeek(validateAndClamp(value, 2, 8, "2"));
   };
   const handleLessonStartChange = (value) => {
-    setLessonStart(validateAndClamp(value, 1, 10, "1"));
+    setLessonStart(validateAndClamp(value, 1, maxLesson, "1"));
   };
   const handleLessonEndChange = (value) => {
-    setLessonEnd(validateAndClamp(value, 1, 10, "10"));
+    setLessonEnd(validateAndClamp(value, 1, maxLesson, String(maxLesson)));
   };
   const handleWeekStartChange = (value) => {
     setWeekStart(validateAndClamp(value, 1, 52, "1"));
@@ -24179,12 +24205,12 @@ function AddCustomCourse({ onAdd, editingCourse, onEditComplete, university }) {
       alert("Thứ phải từ 2 đến 8");
       return;
     }
-    if (isNaN(lsStart) || lsStart < 1 || lsStart > 15) {
-      alert("Tiết bắt đầu phải từ 1 đến 15");
+    if (isNaN(lsStart) || lsStart < 1 || lsStart > maxLesson) {
+      alert(`Tiết bắt đầu phải từ 1 đến ${maxLesson}`);
       return;
     }
-    if (isNaN(lsEnd) || lsEnd < 1 || lsEnd > 15) {
-      alert("Tiết kết thúc phải từ 1 đến 15");
+    if (isNaN(lsEnd) || lsEnd < 1 || lsEnd > maxLesson) {
+      alert(`Tiết kết thúc phải từ 1 đến ${maxLesson}`);
       return;
     }
     if (lsStart > lsEnd) {
@@ -24192,6 +24218,15 @@ function AddCustomCourse({ onAdd, editingCourse, onEditComplete, university }) {
       return;
     }
     let courseData;
+    const selectedTimeIndex = activeCourse && activeCourse.time[editingTimeIndex] ? editingTimeIndex : 0;
+    const updatedTime = {
+      date: day,
+      class: room.trim(),
+      lsStart,
+      lsEnd
+    };
+    const updatedTimes = activeCourse && activeCourse.time.length > 0 ? activeCourse.time.map((time2, index2) => index2 === selectedTimeIndex ? updatedTime : time2) : [updatedTime];
+    const courseId = (activeCourse == null ? void 0 : activeCourse.id) ?? `custom-${Date.now()}`;
     if (usesDates) {
       if (!dateStart || !dateEnd) {
         alert("Vui lòng chọn khoảng ngày");
@@ -24203,25 +24238,19 @@ function AddCustomCourse({ onAdd, editingCourse, onEditComplete, university }) {
         alert("Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc");
         return;
       }
-      const formatDate = (date) => {
+      const formatDate2 = (date) => {
         const dd = String(date.getDate()).padStart(2, "0");
         const mm = String(date.getMonth() + 1).padStart(2, "0");
         const yyyy = date.getFullYear();
         return `${dd}/${mm}/${yyyy}`;
       };
-      const dateRange = `${formatDate(startDate)} - ${formatDate(endDate)}`;
+      const dateRange = `${formatDate2(startDate)} - ${formatDate2(endDate)}`;
       courseData = {
-        id: editingCourse ? editingCourse.id : `custom-${Date.now()}`,
+        ...activeCourse,
+        id: courseId,
         name: courseName.trim(),
         instructor: instructor.trim(),
-        time: [
-          {
-            date: day,
-            class: room.trim(),
-            lsStart,
-            lsEnd
-          }
-        ],
+        time: updatedTimes,
         weekRange: [],
         originalDateRanges: [dateRange],
         displayTimeInfo: dateRange
@@ -24242,17 +24271,11 @@ function AddCustomCourse({ onAdd, editingCourse, onEditComplete, university }) {
         return;
       }
       courseData = {
-        id: editingCourse ? editingCourse.id : `custom-${Date.now()}`,
+        ...activeCourse,
+        id: courseId,
         name: courseName.trim(),
         instructor: instructor.trim(),
-        time: [
-          {
-            date: day,
-            class: room.trim(),
-            lsStart,
-            lsEnd
-          }
-        ],
+        time: updatedTimes,
         weekRange: [
           {
             from: wkStart,
@@ -24267,13 +24290,13 @@ function AddCustomCourse({ onAdd, editingCourse, onEditComplete, university }) {
     setRoom("");
     setDayOfWeek("2");
     setLessonStart("1");
-    setLessonEnd("10");
+    setLessonEnd(String(maxLesson));
     setWeekStart("1");
     setWeekEnd("2");
     setDateStart("");
     setDateEnd("");
     setOpen(false);
-    if (editingCourse && onEditComplete) {
+    if (activeCourse && onEditComplete) {
       onEditComplete();
     }
   };
@@ -24283,12 +24306,20 @@ function AddCustomCourse({ onAdd, editingCourse, onEditComplete, university }) {
     setRoom("");
     setDayOfWeek("2");
     setLessonStart("1");
-    setLessonEnd("10");
+    setLessonEnd(String(maxLesson));
     setWeekStart("1");
     setWeekEnd("2");
+    setDateStart("");
+    setDateEnd("");
   };
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(s$5, { open, onOpenChange: setOpen, children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(n$4, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(o$j, { variant: "soft", color: "green", children: "Thêm lịch tùy chỉnh" }) }),
+  const handleOpenChange = (nextOpen) => {
+    setOpen(nextOpen);
+    if (!nextOpen && activeCourse && onEditComplete) {
+      onEditComplete();
+    }
+  };
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(s$5, { open, onOpenChange: handleOpenChange, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(n$4, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(o$j, { variant: "soft", color: "green", onClick: handleReset, children: "Thêm lịch tùy chỉnh" }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs(p$d, { maxWidth: "450px", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(g$2, { children: editingCourse ? "Chỉnh sửa lịch học" : "Thêm lịch tùy chỉnh" }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs(p$m, { direction: "column", gap: "3", children: [
@@ -24341,7 +24372,11 @@ function AddCustomCourse({ onAdd, editingCourse, onEditComplete, university }) {
             )
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { style: { flex: 1 }, children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { as: "div", size: "2", mb: "1", weight: "bold", children: "Từ tiết (1-15)" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(p$w, { as: "div", size: "2", mb: "1", weight: "bold", children: [
+              "Từ tiết (1-",
+              maxLesson,
+              ")"
+            ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               u$1,
               {
@@ -24355,7 +24390,11 @@ function AddCustomCourse({ onAdd, editingCourse, onEditComplete, university }) {
             )
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { style: { flex: 1 }, children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { as: "div", size: "2", mb: "1", weight: "bold", children: "Đến (1-15)" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs(p$w, { as: "div", size: "2", mb: "1", weight: "bold", children: [
+              "Đến (1-",
+              maxLesson,
+              ")"
+            ] }),
             /* @__PURE__ */ jsxRuntimeExports.jsx(
               u$1,
               {
@@ -24427,6 +24466,255 @@ function AddCustomCourse({ onAdd, editingCourse, onEditComplete, university }) {
         /* @__PURE__ */ jsxRuntimeExports.jsx(D, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(o$j, { variant: "soft", color: "gray", children: "Hủy" }) }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(o$j, { variant: "soft", color: "red", onClick: handleReset, children: "Reset" }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(o$j, { onClick: handleAdd, children: editingCourse ? "Cập nhật" : "Thêm" })
+      ] })
+    ] })
+  ] });
+}
+const DAY_IN_MS = 24 * 60 * 60 * 1e3;
+const TIME_ZONE = "Asia/Ho_Chi_Minh";
+function parseIsoDate(value) {
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!match) return null;
+  const year = Number.parseInt(match[1], 10);
+  const month = Number.parseInt(match[2], 10);
+  const day = Number.parseInt(match[3], 10);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+  return date;
+}
+function parseVietnameseDateRange(value) {
+  const match = value.match(/(\d{2})\/(\d{2})\/(\d{4})\s*-\s*(\d{2})\/(\d{2})\/(\d{4})/);
+  if (!match) return null;
+  const start = parseIsoDate(`${match[3]}-${match[2]}-${match[1]}`);
+  const end = parseIsoDate(`${match[6]}-${match[5]}-${match[4]}`);
+  return start && end && start <= end ? { start, end } : null;
+}
+function addDays(date, days) {
+  return new Date(date.getTime() + days * DAY_IN_MS);
+}
+function formatDate(date) {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}${month}${day}`;
+}
+function formatLocalDateTime(date, hour, minute) {
+  return `${formatDate(date)}T${String(hour).padStart(2, "0")}${String(minute).padStart(2, "0")}00`;
+}
+function formatUtcDateTime(date) {
+  return date.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}Z$/, "Z");
+}
+function escapeText(value) {
+  return value.replace(/\\/g, "\\\\").replace(/\r?\n/g, "\\n").replace(/;/g, "\\;").replace(/,/g, "\\,");
+}
+function foldLine(line) {
+  const folded = [];
+  let current = "";
+  for (const character of line) {
+    const candidate = current + character;
+    if (current && new TextEncoder().encode(candidate).length > 75) {
+      folded.push(current);
+      current = ` ${character}`;
+    } else {
+      current = candidate;
+    }
+  }
+  folded.push(current);
+  return folded;
+}
+function datesFromWeekRanges(course, options, day) {
+  if (!course.weekRange.length) return [];
+  if (!Number.isInteger(options.referenceWeek) || !options.referenceWeekStart) {
+    throw new Error("Vui lòng nhập tuần tham chiếu và ngày bắt đầu tuần.");
+  }
+  const referenceDate = parseIsoDate(options.referenceWeekStart);
+  if (!referenceDate) throw new Error("Ngày bắt đầu tuần không hợp lệ.");
+  const dates = /* @__PURE__ */ new Map();
+  const dayOffset = day - 2;
+  for (const range of course.weekRange) {
+    for (let week = range.from; week <= range.to; week++) {
+      const date = addDays(referenceDate, (week - options.referenceWeek) * 7 + dayOffset);
+      dates.set(formatDate(date), date);
+    }
+  }
+  return [...dates.values()].sort((a2, b2) => a2.getTime() - b2.getTime());
+}
+function datesFromDateRanges(course, day) {
+  const dates = /* @__PURE__ */ new Map();
+  const targetWeekday = day - 2;
+  for (const value of course.originalDateRanges ?? []) {
+    const range = parseVietnameseDateRange(value);
+    if (!range) continue;
+    const startWeekday = (range.start.getUTCDay() + 6) % 7;
+    const firstDate = addDays(range.start, (targetWeekday - startWeekday + 7) % 7);
+    for (let date = firstDate; date <= range.end; date = addDays(date, 7)) {
+      dates.set(formatDate(date), date);
+    }
+  }
+  return [...dates.values()].sort((a2, b2) => a2.getTime() - b2.getTime());
+}
+function createEvents(courses, university, options) {
+  const events = [];
+  for (const course of courses) {
+    course.time.forEach((time2, timeIndex) => {
+      const startSlot = university.timeSlots.find((slot) => slot.lessonNumber === time2.lsStart);
+      const endSlot = university.timeSlots.find((slot) => slot.lessonNumber === time2.lsEnd);
+      if (!startSlot || !endSlot) return;
+      const dates = course.weekRange.length > 0 ? datesFromWeekRanges(course, options, time2.date) : datesFromDateRanges(course, time2.date);
+      for (const date of dates) {
+        const dateKey = formatDate(date);
+        const safeId = course.id.replace(/[^A-Za-z0-9.-]/g, "-");
+        events.push({
+          uid: `${safeId}-${timeIndex}-${dateKey}@tkb.parser`,
+          summary: course.name,
+          description: [
+            course.instructor && `Giảng viên: ${course.instructor}`,
+            course.id && `Mã lớp học phần: ${course.id}`
+          ].filter(Boolean).join("\n"),
+          location: time2.class,
+          date,
+          startHour: startSlot.startTimeHour,
+          startMinute: startSlot.startTimeMin,
+          endHour: endSlot.endTimeHour,
+          endMinute: endSlot.endTimeMin
+        });
+      }
+    });
+  }
+  return events.sort((a2, b2) => a2.date.getTime() - b2.date.getTime() || a2.startHour - b2.startHour || a2.startMinute - b2.startMinute);
+}
+function generateICalendar(courses, university, options = {}) {
+  const timestamp = formatUtcDateTime(options.now ?? /* @__PURE__ */ new Date());
+  const calendarName = options.calendarName ?? `Thời khóa biểu ${university.shortName}`;
+  const lines = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//tkb.parser//Schedule Export//VI",
+    "CALSCALE:GREGORIAN",
+    "METHOD:PUBLISH",
+    `X-WR-CALNAME:${escapeText(calendarName)}`,
+    `X-WR-TIMEZONE:${TIME_ZONE}`,
+    "BEGIN:VTIMEZONE",
+    `TZID:${TIME_ZONE}`,
+    `X-LIC-LOCATION:${TIME_ZONE}`,
+    "BEGIN:STANDARD",
+    "TZOFFSETFROM:+0700",
+    "TZOFFSETTO:+0700",
+    "TZNAME:+07",
+    "DTSTART:19700101T000000",
+    "END:STANDARD",
+    "END:VTIMEZONE"
+  ];
+  for (const event of createEvents(courses, university, options)) {
+    lines.push(
+      "BEGIN:VEVENT",
+      `UID:${event.uid}`,
+      `DTSTAMP:${timestamp}`,
+      `DTSTART;TZID=${TIME_ZONE}:${formatLocalDateTime(event.date, event.startHour, event.startMinute)}`,
+      `DTEND;TZID=${TIME_ZONE}:${formatLocalDateTime(event.date, event.endHour, event.endMinute)}`,
+      `SUMMARY:${escapeText(event.summary)}`,
+      `DESCRIPTION:${escapeText(event.description)}`,
+      `LOCATION:${escapeText(event.location)}`,
+      "STATUS:CONFIRMED",
+      "TRANSP:OPAQUE",
+      "END:VEVENT"
+    );
+  }
+  lines.push("END:VCALENDAR");
+  return `${lines.flatMap(foldLine).join("\r\n")}\r
+`;
+}
+function getUpcomingMonday() {
+  const date = /* @__PURE__ */ new Date();
+  const daysUntilMonday = (8 - date.getDay()) % 7;
+  date.setDate(date.getDate() + daysUntilMonday);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+function DownloadCalendar({ courses, university }) {
+  const [open, setOpen] = reactExports.useState(false);
+  const [referenceWeek, setReferenceWeek] = reactExports.useState("1");
+  const [referenceWeekStart, setReferenceWeekStart] = reactExports.useState(getUpcomingMonday);
+  const [error, setError] = reactExports.useState("");
+  const usesAcademicWeeks = university.features.byWeek;
+  const firstAcademicWeek = reactExports.useMemo(() => {
+    const weeks = courses.flatMap((course) => course.weekRange.map((range) => range.from));
+    return weeks.length > 0 ? Math.min(...weeks) : 1;
+  }, [courses]);
+  reactExports.useEffect(() => {
+    if (open) {
+      setReferenceWeek(String(firstAcademicWeek));
+      setError("");
+    }
+  }, [firstAcademicWeek, open]);
+  const handleDownload = () => {
+    try {
+      const parsedReferenceWeek = Number.parseInt(referenceWeek, 10);
+      if (usesAcademicWeeks && (!Number.isInteger(parsedReferenceWeek) || parsedReferenceWeek < 1)) {
+        setError("Tuần tham chiếu phải là một số nguyên lớn hơn 0.");
+        return;
+      }
+      const calendar = generateICalendar(courses, university, usesAcademicWeeks ? {
+        referenceWeek: parsedReferenceWeek,
+        referenceWeekStart,
+        calendarName: `Thời khóa biểu ${university.shortName}`
+      } : {
+        calendarName: `Thời khóa biểu ${university.shortName}`
+      });
+      if (!calendar.includes("BEGIN:VEVENT")) {
+        setError("Không tìm thấy buổi học hợp lệ để xuất lịch.");
+        return;
+      }
+      const blob = new Blob([calendar], { type: "text/calendar;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `${university.shortName.toLowerCase()}-schedule.ics`;
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      setOpen(false);
+    } catch (downloadError) {
+      setError(downloadError instanceof Error ? downloadError.message : "Không thể tạo tệp lịch.");
+    }
+  };
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(s$5, { open, onOpenChange: setOpen, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(n$4, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(o$j, { variant: "soft", disabled: courses.length === 0, children: "Down Calendar (.ics)" }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(p$d, { maxWidth: "480px", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(g$2, { children: "Xuất thời khóa biểu ra Calendar" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(m$4, { size: "2", color: "gray", children: "Tệp .ics có thể nhập vào Google Calendar, Apple Calendar hoặc Outlook." }),
+      usesAcademicWeeks ? /* @__PURE__ */ jsxRuntimeExports.jsxs(p$m, { direction: "column", gap: "3", mt: "4", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { as: "div", size: "2", mb: "1", weight: "bold", children: "Tuần tham chiếu trong dữ liệu" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            u$1,
+            {
+              type: "number",
+              min: "1",
+              value: referenceWeek,
+              onChange: (event) => setReferenceWeek(event.currentTarget.value)
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { as: "div", size: "2", mb: "1", weight: "bold", children: "Ngày Thứ 2 của tuần tham chiếu" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            u$1,
+            {
+              type: "date",
+              value: referenceWeekStart,
+              onChange: (event) => setReferenceWeekStart(event.currentTarget.value)
+            }
+          )
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { size: "1", color: "gray", children: "Ví dụ: dữ liệu bắt đầu từ tuần 35 thì chọn tuần 35 và ngày Thứ 2 tương ứng. Mỗi môn sẽ được xuất đúng các tuần trong cột “Tuần học”." })
+      ] }) : /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { as: "div", size: "2", mt: "4", children: "Lịch sẽ được tạo trực tiếp từ khoảng ngày của từng môn học." }),
+      error && /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { as: "div", size: "2", color: "red", mt: "3", children: error }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(p$m, { gap: "3", mt: "4", justify: "end", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(D, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(o$j, { variant: "soft", color: "gray", children: "Hủy" }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(o$j, { onClick: handleDownload, children: "Tải tệp .ics" })
       ] })
     ] })
   ] });
@@ -24720,6 +25008,89 @@ function parseThreeTimelineFormat(filteredLines, startIndex, name, id) {
   }
   return courses;
 }
+const COURSE_ID_PATTERN = /^(?=.*\d)(?=.*\.)[A-Za-z0-9.^-]+$/;
+const ORDINAL_PATTERN = /^\d+$/;
+const CREDIT_PATTERN = /^\d+(?:[.,]\d+)?$/;
+const TIME_FIELD_PATTERN = /(?:Thứ\s*[2-7]|Chủ\s*nhật|(?:^|;\s*)[2-7])\s*[:,]\s*\d+\s*-\s*\d+\s*,/iu;
+const WEEK_FIELD_PATTERN = /^\d+\s*(?:-\s*\d+)?(?:\s*;\s*\d+\s*(?:-\s*\d+)?)*$/;
+function normalizeOrdinal(value) {
+  return value.replace(/^\uFEFF/, "").replace(/^["'“”]+/, "").trim();
+}
+function normalizeCourseId(value) {
+  return value.replace(/^["'“”]+|["'“”]+$/g, "").trim();
+}
+function splitRecords(input) {
+  const tokens = input.split(/[\t\r\n]+/).map((token) => token.trim()).filter(Boolean);
+  const recordStarts = [];
+  for (let index2 = 0; index2 < tokens.length - 1; index2++) {
+    const ordinal = normalizeOrdinal(tokens[index2]);
+    const courseId = normalizeCourseId(tokens[index2 + 1]);
+    if (ORDINAL_PATTERN.test(ordinal) && COURSE_ID_PATTERN.test(courseId)) {
+      recordStarts.push(index2);
+    }
+  }
+  return recordStarts.map((start, index2) => {
+    const end = recordStarts[index2 + 1] ?? tokens.length;
+    return tokens.slice(start, end);
+  });
+}
+function parseTimeSlots(value) {
+  const time2 = [];
+  for (const slot of value.split(/\s*;\s*/)) {
+    const match = slot.match(/^(?:(?:Thứ\s*)?([2-7])|(Chủ\s*nhật))\s*[:,]\s*(\d+)\s*-\s*(\d+)\s*,\s*(.+)$/iu);
+    if (!match) continue;
+    const date = match[1] ? Number.parseInt(match[1], 10) : 8;
+    const lsStart = Number.parseInt(match[3], 10);
+    const lsEnd = Number.parseInt(match[4], 10);
+    const location = match[5].trim();
+    if (!location || lsStart > lsEnd) continue;
+    time2.push({
+      date,
+      class: location,
+      lsStart,
+      lsEnd
+    });
+  }
+  return time2;
+}
+function parseWeekRanges(value) {
+  const weekRange = [];
+  for (const range of value.split(/\s*;\s*/)) {
+    const match = range.match(/^(\d+)\s*(?:-\s*(\d+))?$/);
+    if (!match) continue;
+    const from = Number.parseInt(match[1], 10);
+    const to = Number.parseInt(match[2] ?? match[1], 10);
+    if (from > to) continue;
+    weekRange.push({ from, to });
+  }
+  return weekRange;
+}
+function parseRecord(fields) {
+  const courseId = normalizeCourseId(fields[1] ?? "");
+  const timeIndex = fields.findIndex((field, index2) => index2 >= 3 && TIME_FIELD_PATTERN.test(field));
+  if (!COURSE_ID_PATTERN.test(courseId) || timeIndex < 0) return null;
+  const weeksIndex = fields.findIndex((field, index2) => index2 > timeIndex && WEEK_FIELD_PATTERN.test(field));
+  if (weeksIndex < 0) return null;
+  const creditIndex = fields.findIndex((field, index2) => index2 > 2 && index2 < timeIndex && CREDIT_PATTERN.test(field));
+  const instructorStart = creditIndex >= 0 ? creditIndex + 1 : timeIndex - 1;
+  const courseNameEnd = creditIndex >= 0 ? creditIndex : instructorStart;
+  const courseName = fields.slice(2, courseNameEnd).join(" ").trim();
+  const instructor = fields.slice(instructorStart, timeIndex).join(" ").trim();
+  const timeLocation = fields.slice(timeIndex, weeksIndex).join("; ");
+  const time2 = parseTimeSlots(timeLocation);
+  const weekRange = parseWeekRanges(fields[weeksIndex]);
+  if (!courseName || !instructor || time2.length === 0 || weekRange.length === 0) return null;
+  return {
+    id: courseId,
+    name: courseName,
+    instructor,
+    time: time2,
+    weekRange
+  };
+}
+function parseDUTPreviewMode(input) {
+  return splitRecords(input).map(parseRecord).filter((course) => course !== null);
+}
 function parseDUTFormat(s2, university) {
   let id = "", name = "", instructor = "";
   const time2 = [], weekRange = [];
@@ -24769,77 +25140,24 @@ function parseDUTFormat(s2, university) {
     weekRange
   };
 }
-function parseDUTPreviewMode(input) {
-  const lines = input.trim().split("\n").map((line) => line.trim()).filter((line) => line.length > 0);
+function isCompleteCourse(course) {
+  return course !== null && Boolean(course.id) && Boolean(course.name) && Boolean(course.instructor) && course.time.length > 0 && course.weekRange.length > 0;
+}
+function parseDUTInput(input, university) {
+  const singleLineCourses = input.replace(/\r\n/g, "\n").split("\n").map((line) => parseDUTFormat(line, university)).filter(isCompleteCourse);
+  const multilineCourses = parseDUTPreviewMode(input);
+  const singleLineById = new Map(singleLineCourses.map((course) => [course.id, course]));
+  const addedIds = /* @__PURE__ */ new Set();
   const courses = [];
-  const dayMap = {
-    "Thứ 2": 2,
-    "Thứ 3": 3,
-    "Thứ 4": 4,
-    "Thứ 5": 5,
-    "Thứ 6": 6,
-    "Thứ 7": 7,
-    "Chủ nhật": 8
-  };
-  for (const line of lines) {
-    const columns = line.split("	").map((col) => col.trim());
-    if (columns.length < 7) continue;
-    const courseId = columns[1];
-    const courseName = columns[2];
-    const instructor = columns[4];
-    const timeLocationStr = columns[5];
-    const weeksStr = columns[6];
-    if (!courseName || !instructor || !timeLocationStr || !weeksStr) continue;
-    const time2 = [];
-    const weekRange = [];
-    const timeSlots = timeLocationStr.split(";");
-    for (const slot of timeSlots) {
-      const fullDayMatch = slot.match(/(Thứ \d|Chủ nhật):\s*(\d+)-(\d+),([^;]+)/);
-      const shortDayMatch = slot.match(/(\d):\s*(\d+)-(\d+),([^;]+)/);
-      if (fullDayMatch) {
-        const dayName = fullDayMatch[1];
-        const dayNumber = dayMap[dayName] || 8;
-        const lsStart = parseInt(fullDayMatch[2], 10);
-        const lsEnd = parseInt(fullDayMatch[3], 10);
-        const location = fullDayMatch[4].trim();
-        time2.push({
-          date: dayNumber,
-          class: location,
-          lsStart,
-          lsEnd
-        });
-      } else if (shortDayMatch) {
-        const dayNumber = parseInt(shortDayMatch[1], 10);
-        const lsStart = parseInt(shortDayMatch[2], 10);
-        const lsEnd = parseInt(shortDayMatch[3], 10);
-        const location = shortDayMatch[4].trim();
-        time2.push({
-          date: dayNumber,
-          class: location,
-          lsStart,
-          lsEnd
-        });
-      }
-    }
-    const weekRanges = weeksStr.split(";");
-    for (const range of weekRanges) {
-      const weekMatch = range.match(/(\d+)-(\d+)/);
-      if (weekMatch) {
-        weekRange.push({
-          from: parseInt(weekMatch[1], 10),
-          to: parseInt(weekMatch[2], 10)
-        });
-      }
-    }
-    if (time2.length > 0 && weekRange.length > 0) {
-      courses.push({
-        id: courseId,
-        name: courseName,
-        instructor,
-        time: time2,
-        weekRange
-      });
-    }
+  for (const course of multilineCourses) {
+    if (addedIds.has(course.id)) continue;
+    courses.push(singleLineById.get(course.id) ?? course);
+    addedIds.add(course.id);
+  }
+  for (const course of singleLineCourses) {
+    if (addedIds.has(course.id)) continue;
+    courses.push(course);
+    addedIds.add(course.id);
   }
   return courses;
 }
@@ -33380,11 +33698,15 @@ var parseBackgroundColor = function(context, element, backgroundColorOverride) {
   var defaultBackgroundColor = typeof backgroundColorOverride === "string" ? parseColor(context, backgroundColorOverride) : backgroundColorOverride === null ? COLORS.TRANSPARENT : 4294967295;
   return element === ownerDocument.documentElement ? isTransparent(documentBackgroundColor) ? isTransparent(bodyBackgroundColor) ? defaultBackgroundColor : bodyBackgroundColor : documentBackgroundColor : defaultBackgroundColor;
 };
-const table = "_table_sczgv_1";
-const card = "_card_sczgv_36";
+const table = "_table_xd4tw_1";
+const card = "_card_xd4tw_36";
+const emptyCell = "_emptyCell_xd4tw_46";
+const fit = "_fit_xd4tw_55";
 const tbCls = {
   table,
-  card
+  card,
+  emptyCell,
+  fit
 };
 function App() {
   const { theme, setTheme } = useTheme();
@@ -33392,6 +33714,7 @@ function App() {
   const [byWeek, setByWeek] = reactExports.useState(localStorage.getItem("byWeek") === "true" || false);
   const [showOnlyAvailable, setShowOnlyAvailable] = reactExports.useState(localStorage.getItem("showOnlyAvailable") === "true" || false);
   const [onlyToday, setOnlyToday] = reactExports.useState(localStorage.getItem("onlyToday") === "true" || false);
+  const [autoFitSchedule, setAutoFitSchedule] = reactExports.useState(localStorage.getItem("autoFitSchedule") !== "false");
   const [mergeTimeRanges, setMergeTimeRanges] = reactExports.useState(localStorage.getItem("mergeTimeRanges") !== "false");
   const [week, setWeek] = reactExports.useState(localStorage.getItem("week") ? Number(localStorage.getItem("week")) : 0);
   const [byDateRange, setByDateRange] = reactExports.useState(localStorage.getItem("byDateRange") === "true" || false);
@@ -33407,6 +33730,12 @@ function App() {
     return saved ? JSON.parse(saved) : {};
   });
   const [editingCourse, setEditingCourse] = reactExports.useState(null);
+  const [initialCourse, setInitialCourse] = reactExports.useState(null);
+  const [editingTimeIndex, setEditingTimeIndex] = reactExports.useState(0);
+  const [courseOverrides, setCourseOverrides] = reactExports.useState(() => {
+    const saved = localStorage.getItem("courseOverrides");
+    return saved ? JSON.parse(saved) : {};
+  });
   const tableRef = reactExports.useRef(null);
   reactExports.useEffect(() => {
     localStorage.setItem("selectedUniversity", selectedUniversity.id);
@@ -33414,6 +33743,9 @@ function App() {
   reactExports.useEffect(() => {
     localStorage.setItem("customFeatures", JSON.stringify(customFeatures));
   }, [customFeatures]);
+  reactExports.useEffect(() => {
+    localStorage.setItem("courseOverrides", JSON.stringify(courseOverrides));
+  }, [courseOverrides]);
   reactExports.useEffect(() => {
     localStorage.setItem(`customCourses_${selectedUniversity.id}`, JSON.stringify(customCourses));
   }, [customCourses, selectedUniversity.id]);
@@ -33423,19 +33755,61 @@ function App() {
   }, [selectedUniversity.id]);
   const handleAddCustomCourse = (course) => {
     if (editingCourse) {
-      setCustomCourses((prev) => prev.map((c2) => c2.id === editingCourse.id ? course : c2));
-      setEditingCourse(null);
+      if (editingCourse.id.startsWith("custom-")) {
+        setCustomCourses((prev) => prev.map((c2) => c2.id === editingCourse.id ? course : c2));
+      } else {
+        setCourseOverrides((prev) => ({
+          ...prev,
+          [selectedUniversity.id]: {
+            ...prev[selectedUniversity.id] ?? {},
+            [editingCourse.id]: course
+          }
+        }));
+      }
     } else {
       setCustomCourses((prev) => [...prev, course]);
     }
+    setEditingCourse(null);
+    setInitialCourse(null);
   };
   const handleDeleteCourse = (courseId) => {
     if (confirm("Bạn có chắc muốn xóa môn học này?")) {
       setCustomCourses((prev) => prev.filter((c2) => c2.id !== courseId));
     }
   };
-  const handleEditCourse = (course) => {
+  const handleEditCourse = (course, timeIndex = 0) => {
+    setInitialCourse(null);
+    setEditingTimeIndex(timeIndex);
     setEditingCourse(course);
+  };
+  const handleAddCourseAtSlot = reactExports.useCallback((day, lessonNumber) => {
+    const selectedWeek = week > 0 ? week : 1;
+    const selectedDate = dateRangeStart || (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+    const [year, month, date] = selectedDate.split("-");
+    const formattedDate = `${date}/${month}/${year}`;
+    setEditingCourse(null);
+    setEditingTimeIndex(0);
+    setInitialCourse({
+      id: `custom-${Date.now()}-${day}-${lessonNumber}`,
+      name: "",
+      instructor: "",
+      time: [{
+        date: day,
+        class: "",
+        lsStart: lessonNumber,
+        lsEnd: lessonNumber
+      }],
+      weekRange: selectedUniversity.features.byWeek ? [{
+        from: selectedWeek,
+        to: selectedWeek
+      }] : [],
+      originalDateRanges: selectedUniversity.features.byDateRange ? [`${formattedDate} - ${formattedDate}`] : void 0
+    });
+  }, [dateRangeStart, selectedUniversity, week]);
+  const handleCourseDialogClose = () => {
+    setEditingCourse(null);
+    setInitialCourse(null);
+    setEditingTimeIndex(0);
   };
   const handleUniversityChange = (university) => {
     var _a2;
@@ -33464,6 +33838,9 @@ function App() {
   reactExports.useEffect(() => {
     localStorage.setItem("onlyToday", onlyToday.toString());
   }, [onlyToday]);
+  reactExports.useEffect(() => {
+    localStorage.setItem("autoFitSchedule", autoFitSchedule.toString());
+  }, [autoFitSchedule]);
   reactExports.useEffect(() => {
     localStorage.setItem("mergeTimeRanges", mergeTimeRanges.toString());
   }, [mergeTimeRanges]);
@@ -33508,11 +33885,11 @@ function App() {
           if (sortedRanges.length > 0) {
             const firstRange = sortedRanges[0];
             const lastRange = sortedRanges[sortedRanges.length - 1];
-            const formatDate = (dateStr) => {
+            const formatDate2 = (dateStr) => {
               const parts = dateStr.split("/");
               return `${parts[0]}/${parts[1]}/${parts[2].slice(-2)}`;
             };
-            mergedTimeInfo = `${formatDate(firstRange.startStr)} - ${formatDate(lastRange.endStr)}`;
+            mergedTimeInfo = `${formatDate2(firstRange.startStr)} - ${formatDate2(lastRange.endStr)}`;
           }
         }
         const mergedCourse = {
@@ -33538,22 +33915,25 @@ function App() {
     if (selectedUniversity.id === "ufl") {
       const courses = parseUFLFormat(data);
       d2.push(...courses);
+    } else if (selectedUniversity.id === "dut") {
+      d2.push(...parseDUTInput(data, selectedUniversity));
     } else {
       const universityParser = createUniversityParser(selectedUniversity);
-      data.replace(/\r\n/g, "\n").split("\n").map((line) => {
-        if (line === "") return null;
-        const parser = universityParser(line);
-        if (parser) {
-          d2.push(parser);
-        }
+      data.replace(/\r\n/g, "\n").split("\n").forEach((line) => {
+        if (line === "") return;
+        const course = universityParser(line);
+        if (course) d2.push(course);
       });
     }
+    const selectedOverrides = courseOverrides[selectedUniversity.id] ?? {};
+    const parsedCourses = d2.map((course) => selectedOverrides[course.id] ?? course);
+    d2.splice(0, d2.length, ...parsedCourses);
     d2.push(...customCourses);
     if (mergeTimeRanges) {
       return mergeSimilarCourses(d2);
     }
     return d2;
-  }, [data, selectedUniversity, mergeTimeRanges, customCourses]);
+  }, [data, selectedUniversity, mergeTimeRanges, customCourses, courseOverrides]);
   const dt = reactExports.useMemo(() => {
     const universityTimeRange = getUniversityTimeRange(selectedUniversity);
     const isInDateRange = (course) => {
@@ -33580,6 +33960,8 @@ function App() {
         )
       )
     ) : universityTimeRange;
+    const today = (/* @__PURE__ */ new Date()).getDay();
+    const visibleDays = Array.from({ length: 7 }, (_, index2) => index2 + 2).filter((day) => !onlyToday || day === today + 1 || day === 8 && today === 0);
     return /* @__PURE__ */ jsxRuntimeExports.jsx(jsxRuntimeExports.Fragment, { children: filteredTimeRange.map((time2, tr) => /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
       /* @__PURE__ */ jsxRuntimeExports.jsxs("td", { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(p$w, { size: "1", style: { fontSize: "12px", color: "gray" }, color: "gray", children: [
@@ -33593,61 +33975,98 @@ function App() {
           time2.end
         ] })
       ] }),
-      Array.from({ length: 7 }, (_, i) => i + 2).map((day) => (onlyToday && (day === (/* @__PURE__ */ new Date()).getDay() + 1 || day === 8 && (/* @__PURE__ */ new Date()).getDay() === 0) || !onlyToday) && /* @__PURE__ */ jsxRuntimeExports.jsx("td", { children: (() => {
+      visibleDays.map((day) => {
         const coursesInSlot = scheduleData.filter(
-          (d2) => d2.time.some((t2) => t2.date === day && t2.lsStart <= time2.lessonNumber && t2.lsEnd >= time2.lessonNumber && (!byWeek || d2.weekRange.some((wr) => wr.from <= week && wr.to >= week))) && isInDateRange(d2)
+          (course) => course.time.some((slot) => slot.date === day && slot.lsStart <= time2.lessonNumber && slot.lsEnd >= time2.lessonNumber && (!byWeek || course.weekRange.some((range) => range.from <= week && range.to >= week))) && isInDateRange(course)
         );
         const hasConflict = coursesInSlot.length > 1;
-        return coursesInSlot.map((d2, ind) => {
-          const isCustomCourse = d2.id.startsWith("custom-");
-          const courseCard = /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            p$p,
-            {
-              className: tbCls.card,
-              style: {
-                marginBottom: hasConflict && ind < coursesInSlot.length - 1 ? "4px" : void 0,
-                position: "relative"
-              },
-              children: [
-                hasConflict && /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  p$p,
-                  {
-                    style: {
-                      position: "absolute",
-                      top: "4px",
-                      right: "4px",
-                      fontSize: "16px",
-                      cursor: "help"
-                    },
-                    title: "Trùng lịch học",
-                    children: "⚠️"
-                  }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs(p$p, { style: { display: "flex", flexDirection: "column", gap: "1px" }, children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { weight: "bold", children: d2.name }),
-                  d2.displayTimeInfo && /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { size: "1", style: { fontSize: "12px", color: "gray" }, color: "gray", children: d2.displayTimeInfo }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { size: "1", style: { fontSize: "10px", color: "grey" }, color: "gray", children: d2.instructor }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { weight: "bold", size: "1", style: { fontSize: "14px" }, color: "gray", children: d2.time.filter((t2) => t2.date === day && t2.lsStart <= time2.lessonNumber && t2.lsEnd >= time2.lessonNumber).map((t2) => t2.class).join(", ") })
-                ] })
-              ]
+        const isEmpty = coursesInSlot.length === 0;
+        return /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "td",
+          {
+            className: isEmpty ? tbCls.emptyCell : void 0,
+            role: isEmpty ? "button" : void 0,
+            tabIndex: isEmpty ? 0 : void 0,
+            title: isEmpty ? "Nhấn để thêm lịch tại ô này" : void 0,
+            onClick: () => {
+              if (isEmpty) handleAddCourseAtSlot(day, time2.lessonNumber);
             },
-            d2.id + day + ind
-          );
-          if (isCustomCourse) {
-            return /* @__PURE__ */ jsxRuntimeExports.jsxs(h$2, { children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(S$2, { children: courseCard }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs(v$5, { children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(R$2, { onClick: () => handleEditCourse(d2), children: "✏️ Chỉnh sửa" }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(W, {}),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(R$2, { color: "red", onClick: () => handleDeleteCourse(d2.id), children: "🗑️ Xóa" })
-              ] })
-            ] }, d2.id + day + ind);
-          }
-          return courseCard;
-        });
-      })() }, day))
+            onKeyDown: (event) => {
+              if (isEmpty && (event.key === "Enter" || event.key === " ")) {
+                event.preventDefault();
+                handleAddCourseAtSlot(day, time2.lessonNumber);
+              }
+            },
+            children: coursesInSlot.map((course, index2) => {
+              const isCustomCourse = course.id.startsWith("custom-");
+              const courseTimeIndex = course.time.findIndex((slot) => slot.date === day && slot.lsStart <= time2.lessonNumber && slot.lsEnd >= time2.lessonNumber);
+              const openEditor = () => handleEditCourse(course, Math.max(courseTimeIndex, 0));
+              const courseCard = /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                p$p,
+                {
+                  className: tbCls.card,
+                  role: "button",
+                  tabIndex: 0,
+                  title: "Nhấn để chỉnh sửa lịch học",
+                  onClick: (event) => {
+                    event.stopPropagation();
+                    openEditor();
+                  },
+                  onKeyDown: (event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      openEditor();
+                    }
+                  },
+                  style: {
+                    marginBottom: hasConflict && index2 < coursesInSlot.length - 1 ? "4px" : void 0,
+                    position: "relative",
+                    cursor: "pointer"
+                  },
+                  children: [
+                    hasConflict && /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      p$p,
+                      {
+                        style: {
+                          position: "absolute",
+                          top: "4px",
+                          right: "4px",
+                          fontSize: "16px",
+                          cursor: "help"
+                        },
+                        title: "Trùng lịch học",
+                        children: "⚠️"
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs(p$p, { style: { display: "flex", flexDirection: "column", gap: "1px" }, children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { weight: "bold", children: course.name }),
+                      course.displayTimeInfo && /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { size: "1", style: { fontSize: "12px", color: "gray" }, color: "gray", children: course.displayTimeInfo }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { size: "1", style: { fontSize: "10px", color: "grey" }, color: "gray", children: course.instructor }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { weight: "bold", size: "1", style: { fontSize: "14px" }, color: "gray", children: course.time.filter((slot) => slot.date === day && slot.lsStart <= time2.lessonNumber && slot.lsEnd >= time2.lessonNumber).map((slot) => slot.class).join(", ") })
+                    ] })
+                  ]
+                },
+                course.id + day + index2
+              );
+              if (isCustomCourse) {
+                return /* @__PURE__ */ jsxRuntimeExports.jsxs(h$2, { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(S$2, { children: courseCard }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(v$5, { children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(R$2, { onClick: openEditor, children: "✏️ Chỉnh sửa" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(W, {}),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(R$2, { color: "red", onClick: () => handleDeleteCourse(course.id), children: "🗑️ Xóa" })
+                  ] })
+                ] }, course.id + day + index2);
+              }
+              return courseCard;
+            })
+          },
+          day
+        );
+      })
     ] }, tr)) });
-  }, [week, byWeek, byDateRange, dateRangeStart, dateRangeEnd, scheduleData, showOnlyAvailable, onlyToday, selectedUniversity]);
+  }, [week, byWeek, byDateRange, dateRangeStart, dateRangeEnd, scheduleData, showOnlyAvailable, onlyToday, selectedUniversity, handleAddCourseAtSlot]);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(p$g, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(o$i, { my: "3", mx: "3", style: { width: "calc(100% - 2rem)", padding: "1.5rem" }, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(p$m, { direction: "column", gap: "1", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -33689,17 +34108,22 @@ function App() {
           setOnlyToday,
           mergeTimeRanges,
           setMergeTimeRanges,
+          autoFitSchedule,
+          setAutoFitSchedule,
           customFeatures,
           setCustomFeatures
         }
       ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(p$w, { size: "1", color: "gray", children: "Mẹo: nhấn vào môn học để chỉnh sửa; nhấn vào ô trống để thêm lịch tại đúng ngày và tiết đó." }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs(p$m, { align: "center", gap: "2", wrap: "wrap", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx(
           AddCustomCourse,
           {
             onAdd: handleAddCustomCourse,
             editingCourse,
-            onEditComplete: () => setEditingCourse(null),
+            initialCourse,
+            editingTimeIndex,
+            onEditComplete: handleCourseDialogClose,
             university: selectedUniversity
           }
         ),
@@ -33711,9 +34135,15 @@ function App() {
             onClick: () => {
               setData("");
               setCustomCourses([]);
+              setCourseOverrides((prev) => ({
+                ...prev,
+                [selectedUniversity.id]: {}
+              }));
+              handleCourseDialogClose();
               setByWeek(false);
               setWeek(0);
               setShowOnlyAvailable(false);
+              setAutoFitSchedule(true);
             },
             children: "Reset"
           }
@@ -33741,6 +34171,13 @@ function App() {
             children: "Lưu lại thành file ảnh"
           }
         ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          DownloadCalendar,
+          {
+            courses: scheduleData,
+            university: selectedUniversity
+          }
+        ),
         /* @__PURE__ */ jsxRuntimeExports.jsx("a", { href: selectedUniversity.videoUrl, target: "_blank", rel: "noreferrer", children: /* @__PURE__ */ jsxRuntimeExports.jsx(o$j, { variant: "soft", color: "cyan", children: "Xem hướng dẫn" }) }),
         /* @__PURE__ */ jsxRuntimeExports.jsx(
           o$j,
@@ -33755,7 +34192,7 @@ function App() {
         )
       ] })
     ] }) }) }),
-    scheduleData.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(p$p, { mx: "3", style: { width: "calc(100% - 2rem)", overflow: "auto" }, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: tbCls.table, ref: tableRef, children: [
+    scheduleData.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx(p$p, { mx: "3", style: { width: "calc(100% - 2rem)", overflow: "auto" }, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("table", { className: `${tbCls.table} ${autoFitSchedule ? tbCls.fit : ""}`, ref: tableRef, children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("thead", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs("tr", { children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("th", { children: " " }),
         onlyToday ? /* @__PURE__ */ jsxRuntimeExports.jsx("th", { children: (/* @__PURE__ */ new Date()).getDay() === 0 ? "Chủ nhật" : `Thứ ${(/* @__PURE__ */ new Date()).getDay() + 1}` }) : Array.from({ length: 7 }, (_, i) => i + 2).map((day) => /* @__PURE__ */ jsxRuntimeExports.jsx("th", { children: day === 8 ? "Chủ nhật" : `Thứ ${day}` }, day))
@@ -33815,4 +34252,4 @@ const ThemeMatcher = ({ children }) => {
 clientExports.createRoot(document.getElementById("root")).render(
   /* @__PURE__ */ jsxRuntimeExports.jsx(reactExports.StrictMode, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(ThemeMatcher, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(App, {}) }) })
 );
-//# sourceMappingURL=index-DGL2e-fl.js.map
+//# sourceMappingURL=index-CAj9SCs6.js.map

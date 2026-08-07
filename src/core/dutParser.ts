@@ -1,29 +1,8 @@
-/*
- * MIT License
- *
- * Copyright (c) 2025 michioxd
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
+
 
 import { UniversityConfig } from '../config/universities';
-import { TKBType } from './universityParser';
+import parseDUTPreviewMode from './dutParser_previewmode';
+import type { TKBType } from './universityParser';
 
 export function parseDUTFormat(s: string, university: UniversityConfig): TKBType | null {
     let id = "",
@@ -96,6 +75,44 @@ export function parseDUTFormat(s: string, university: UniversityConfig): TKBType
         time,
         weekRange
     };
+}
+
+function isCompleteCourse(course: TKBType | null): course is TKBType {
+    return course !== null
+        && Boolean(course.id)
+        && Boolean(course.name)
+        && Boolean(course.instructor)
+        && course.time.length > 0
+        && course.weekRange.length > 0;
+}
+
+/** Parse a complete DUT paste while retaining all supported one-line formats. */
+export function parseDUTInput(input: string, university: UniversityConfig): TKBType[] {
+    const singleLineCourses = input
+        .replace(/\r\n/g, '\n')
+        .split('\n')
+        .map(line => parseDUTFormat(line, university))
+        .filter(isCompleteCourse);
+    const multilineCourses = parseDUTPreviewMode(input);
+    const singleLineById = new Map(singleLineCourses.map(course => [course.id, course]));
+    const addedIds = new Set<string>();
+    const courses: TKBType[] = [];
+
+    // Prefer the established parser when both formats recognize the same row.
+    // The bulk parser contributes records that exist only in the multiline data.
+    for (const course of multilineCourses) {
+        if (addedIds.has(course.id)) continue;
+        courses.push(singleLineById.get(course.id) ?? course);
+        addedIds.add(course.id);
+    }
+
+    for (const course of singleLineCourses) {
+        if (addedIds.has(course.id)) continue;
+        courses.push(course);
+        addedIds.add(course.id);
+    }
+
+    return courses;
 }
 
 export default parseDUTFormat;

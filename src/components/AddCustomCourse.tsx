@@ -1,26 +1,4 @@
-/*
- * MIT License
- *
- * Copyright (c) 2025 michioxd
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
+
 
 import { Button, Dialog, Flex, Text, TextField } from "@radix-ui/themes";
 import { useState, useEffect } from "react";
@@ -30,11 +8,20 @@ import { UniversityConfig } from "../config/universities";
 interface AddCustomCourseProps {
     onAdd: (course: TKBType) => void;
     editingCourse?: TKBType | null;
+    initialCourse?: TKBType | null;
+    editingTimeIndex?: number;
     onEditComplete?: () => void;
     university: UniversityConfig;
 }
 
-export default function AddCustomCourse({ onAdd, editingCourse, onEditComplete, university }: AddCustomCourseProps) {
+export default function AddCustomCourse({
+    onAdd,
+    editingCourse,
+    initialCourse,
+    editingTimeIndex = 0,
+    onEditComplete,
+    university
+}: AddCustomCourseProps) {
     const [open, setOpen] = useState(false);
     const [courseName, setCourseName] = useState("");
     const [instructor, setInstructor] = useState("");
@@ -48,31 +35,34 @@ export default function AddCustomCourse({ onAdd, editingCourse, onEditComplete, 
     const [dateEnd, setDateEnd] = useState("");
     
     const usesDates = university.features.byDateRange || false;
+    const activeCourse = editingCourse ?? initialCourse;
+    const maxLesson = Math.max(...university.timeSlots.map(slot => slot.lessonNumber));
 
-    // Load editing course data when editingCourse changes
+    // Load either an existing course or a draft created by clicking an empty cell.
     useEffect(() => {
-        if (editingCourse) {
-            setCourseName(editingCourse.name);
-            setInstructor(editingCourse.instructor || "");
-            setRoom(editingCourse.time[0]?.class || "");
-            setDayOfWeek(editingCourse.time[0]?.date.toString() || "2");
-            setLessonStart(editingCourse.time[0]?.lsStart.toString() || "1");
-            setLessonEnd(editingCourse.time[0]?.lsEnd.toString() || "10");
+        if (activeCourse) {
+            const selectedTime = activeCourse.time[editingTimeIndex] ?? activeCourse.time[0];
+            setCourseName(activeCourse.name);
+            setInstructor(activeCourse.instructor || "");
+            setRoom(selectedTime?.class || "");
+            setDayOfWeek(selectedTime?.date.toString() || "2");
+            setLessonStart(selectedTime?.lsStart.toString() || "1");
+            setLessonEnd(selectedTime?.lsEnd.toString() || "1");
             
-            if (usesDates && editingCourse.originalDateRanges && editingCourse.originalDateRanges.length > 0) {
-                const match = editingCourse.originalDateRanges[0].match(/(\d{2})\/(\d{2})\/(\d{4})\s*-\s*(\d{2})\/(\d{2})\/(\d{4})/);
+            if (usesDates && activeCourse.originalDateRanges && activeCourse.originalDateRanges.length > 0) {
+                const match = activeCourse.originalDateRanges[0].match(/(\d{2})\/(\d{2})\/(\d{4})\s*-\s*(\d{2})\/(\d{2})\/(\d{4})/);
                 if (match) {
                     setDateStart(`${match[3]}-${match[2]}-${match[1]}`);
                     setDateEnd(`${match[6]}-${match[5]}-${match[4]}`);
                 }
             } else {
-                setWeekStart(editingCourse.weekRange[0]?.from.toString() || "1");
-                setWeekEnd(editingCourse.weekRange[0]?.to.toString() || "2");
+                setWeekStart(activeCourse.weekRange[0]?.from.toString() || "1");
+                setWeekEnd(activeCourse.weekRange[0]?.to.toString() || "1");
             }
             
             setOpen(true);
         }
-    }, [editingCourse, usesDates]);
+    }, [activeCourse, editingTimeIndex, usesDates]);
 
     const validateAndClamp = (value: string, min: number, max: number, defaultValue: string): string => {
         // Remove any non-numeric characters except minus sign
@@ -102,11 +92,11 @@ export default function AddCustomCourse({ onAdd, editingCourse, onEditComplete, 
     };
 
     const handleLessonStartChange = (value: string) => {
-        setLessonStart(validateAndClamp(value, 1, 10, "1"));
+        setLessonStart(validateAndClamp(value, 1, maxLesson, "1"));
     };
 
     const handleLessonEndChange = (value: string) => {
-        setLessonEnd(validateAndClamp(value, 1, 10, "10"));
+        setLessonEnd(validateAndClamp(value, 1, maxLesson, String(maxLesson)));
     };
 
     const handleWeekStartChange = (value: string) => {
@@ -135,13 +125,13 @@ export default function AddCustomCourse({ onAdd, editingCourse, onEditComplete, 
             return;
         }
 
-        if (isNaN(lsStart) || lsStart < 1 || lsStart > 15) {
-            alert("Tiết bắt đầu phải từ 1 đến 15");
+        if (isNaN(lsStart) || lsStart < 1 || lsStart > maxLesson) {
+            alert(`Tiết bắt đầu phải từ 1 đến ${maxLesson}`);
             return;
         }
 
-        if (isNaN(lsEnd) || lsEnd < 1 || lsEnd > 15) {
-            alert("Tiết kết thúc phải từ 1 đến 15");
+        if (isNaN(lsEnd) || lsEnd < 1 || lsEnd > maxLesson) {
+            alert(`Tiết kết thúc phải từ 1 đến ${maxLesson}`);
             return;
         }
 
@@ -151,6 +141,19 @@ export default function AddCustomCourse({ onAdd, editingCourse, onEditComplete, 
         }
 
         let courseData: TKBType;
+        const selectedTimeIndex = activeCourse && activeCourse.time[editingTimeIndex]
+            ? editingTimeIndex
+            : 0;
+        const updatedTime = {
+            date: day,
+            class: room.trim(),
+            lsStart,
+            lsEnd
+        };
+        const updatedTimes = activeCourse && activeCourse.time.length > 0
+            ? activeCourse.time.map((time, index) => index === selectedTimeIndex ? updatedTime : time)
+            : [updatedTime];
+        const courseId = activeCourse?.id ?? `custom-${Date.now()}`;
 
         if (usesDates) {
             // For date-based universities (like UFL)
@@ -178,17 +181,11 @@ export default function AddCustomCourse({ onAdd, editingCourse, onEditComplete, 
             const dateRange = `${formatDate(startDate)} - ${formatDate(endDate)}`;
 
             courseData = {
-                id: editingCourse ? editingCourse.id : `custom-${Date.now()}`,
+                ...activeCourse,
+                id: courseId,
                 name: courseName.trim(),
                 instructor: instructor.trim(),
-                time: [
-                    {
-                        date: day,
-                        class: room.trim(),
-                        lsStart: lsStart,
-                        lsEnd: lsEnd
-                    }
-                ],
+                time: updatedTimes,
                 weekRange: [],
                 originalDateRanges: [dateRange],
                 displayTimeInfo: dateRange
@@ -214,17 +211,11 @@ export default function AddCustomCourse({ onAdd, editingCourse, onEditComplete, 
             }
 
             courseData = {
-                id: editingCourse ? editingCourse.id : `custom-${Date.now()}`,
+                ...activeCourse,
+                id: courseId,
                 name: courseName.trim(),
                 instructor: instructor.trim(),
-                time: [
-                    {
-                        date: day,
-                        class: room.trim(),
-                        lsStart: lsStart,
-                        lsEnd: lsEnd
-                    }
-                ],
+                time: updatedTimes,
                 weekRange: [
                     {
                         from: wkStart,
@@ -242,14 +233,14 @@ export default function AddCustomCourse({ onAdd, editingCourse, onEditComplete, 
         setRoom("");
         setDayOfWeek("2");
         setLessonStart("1");
-        setLessonEnd("10");
+        setLessonEnd(String(maxLesson));
         setWeekStart("1");
         setWeekEnd("2");
         setDateStart("");
         setDateEnd("");
         setOpen(false);
         
-        if (editingCourse && onEditComplete) {
+        if (activeCourse && onEditComplete) {
             onEditComplete();
         }
     };
@@ -260,15 +251,24 @@ export default function AddCustomCourse({ onAdd, editingCourse, onEditComplete, 
         setRoom("");
         setDayOfWeek("2");
         setLessonStart("1");
-        setLessonEnd("10");
+        setLessonEnd(String(maxLesson));
         setWeekStart("1");
         setWeekEnd("2");
+        setDateStart("");
+        setDateEnd("");
+    };
+
+    const handleOpenChange = (nextOpen: boolean) => {
+        setOpen(nextOpen);
+        if (!nextOpen && activeCourse && onEditComplete) {
+            onEditComplete();
+        }
     };
 
     return (
-        <Dialog.Root open={open} onOpenChange={setOpen}>
+        <Dialog.Root open={open} onOpenChange={handleOpenChange}>
             <Dialog.Trigger>
-                <Button variant="soft" color="green">
+                <Button variant="soft" color="green" onClick={handleReset}>
                     Thêm lịch tùy chỉnh
                 </Button>
             </Dialog.Trigger>
@@ -327,7 +327,7 @@ export default function AddCustomCourse({ onAdd, editingCourse, onEditComplete, 
 
                         <label style={{ flex: 1 }}>
                             <Text as="div" size="2" mb="1" weight="bold">
-                                Từ tiết (1-15)
+                                Từ tiết (1-{maxLesson})
                             </Text>
                             <TextField.Root
                                 type="text"
@@ -341,7 +341,7 @@ export default function AddCustomCourse({ onAdd, editingCourse, onEditComplete, 
 
                         <label style={{ flex: 1 }}>
                             <Text as="div" size="2" mb="1" weight="bold">
-                                Đến (1-15)
+                                Đến (1-{maxLesson})
                             </Text>
                             <TextField.Root
                                 type="text"

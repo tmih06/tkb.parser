@@ -54,3 +54,62 @@
         }
     }
 }
+
+.emptyCell {
+    cursor: cell;
+
+    &:hover,
+    &:focus-visible {
+        background: var(--accent-a3);
+        outline: 2px solid var(--accent-a7);
+        outline-offset: -2px;
+    }
+}
+
+.fit {
+    table-layout: fixed;
+
+    thead tr th {
+        min-width: 0;
+        width: auto;
+        padding: 0.5rem 0.3rem;
+        overflow-wrap: anywhere;
+
+        &:first-child {
+            width: 8rem;
+            min-width: 0;
+        }
+    }
+
+    tbody tr td {
+        min-width: 0;
+        vertical-align: top;
+        overflow-wrap: anywhere;
+
+        .card {
+            padding: 0.45rem;
+        }
+    }
+}
+
+@media (max-width: 768px) {
+    .fit {
+        font-size: 11px;
+
+        thead tr th {
+            padding: 0.35rem 0.15rem;
+
+            &:first-child {
+                width: 5rem;
+            }
+        }
+
+        tbody tr td {
+            padding: 0.15rem;
+
+            .card {
+                padding: 0.25rem;
+            }
+        }
+    }
+}

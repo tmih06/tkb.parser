@@ -1,132 +1,131 @@
-/*
- * MIT License
- *
- * Copyright (c) 2025 michioxd
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
+import type { TKBType } from './universityParser';
 
-import { TKBType } from './universityParser';
+const COURSE_ID_PATTERN = /^(?=.*\d)(?=.*\.)[A-Za-z0-9.^-]+$/;
+const ORDINAL_PATTERN = /^\d+$/;
+const CREDIT_PATTERN = /^\d+(?:[.,]\d+)?$/;
+const TIME_FIELD_PATTERN = /(?:Thứ\s*[2-7]|Chủ\s*nhật|(?:^|;\s*)[2-7])\s*[:,]\s*\d+\s*-\s*\d+\s*,/iu;
+const WEEK_FIELD_PATTERN = /^\d+\s*(?:-\s*\d+)?(?:\s*;\s*\d+\s*(?:-\s*\d+)?)*$/;
 
-/**
- * Parser for DUT preview mode format (tab-separated format)
- * Format: ID | CourseID | CourseName | Credits | Instructor | Time&Location | Weeks | ...
- * Example: 1	2090160.2520.24.16	Chủ nghĩa Xã hội khoa học	2	Trương Thị Thu Hiền	Thứ 6: 1-2,F207	22-27;31-40
- */
-export function parseDUTPreviewMode(input: string): TKBType[] {
-    const lines = input.trim().split('\n').map(line => line.trim()).filter(line => line.length > 0);
-    const courses: TKBType[] = [];
+function normalizeOrdinal(value: string): string {
+    return value.replace(/^\uFEFF/, '').replace(/^["'“”]+/, '').trim();
+}
 
-    // Day name to number mapping
-    const dayMap: { [key: string]: number } = {
-        'Thứ 2': 2,
-        'Thứ 3': 3,
-        'Thứ 4': 4,
-        'Thứ 5': 5,
-        'Thứ 6': 6,
-        'Thứ 7': 7,
-        'Chủ nhật': 8
-    };
+function normalizeCourseId(value: string): string {
+    return value.replace(/^["'“”]+|["'“”]+$/g, '').trim();
+}
 
-    for (const line of lines) {
-        const columns = line.split('\t').map(col => col.trim());
-        
-        // Need at least 7 columns
-        if (columns.length < 7) continue;
+function splitRecords(input: string): string[][] {
+    const tokens = input
+        .split(/[\t\r\n]+/)
+        .map(token => token.trim())
+        .filter(Boolean);
+    const recordStarts: number[] = [];
 
-        const courseId = columns[1];
-        const courseName = columns[2];
-        const instructor = columns[4];
-        const timeLocationStr = columns[5];
-        const weeksStr = columns[6];
+    for (let index = 0; index < tokens.length - 1; index++) {
+        const ordinal = normalizeOrdinal(tokens[index]);
+        const courseId = normalizeCourseId(tokens[index + 1]);
 
-        // Skip if essential data is missing
-        if (!courseName || !instructor || !timeLocationStr || !weeksStr) continue;
-
-        const time: TKBType['time'] = [];
-        const weekRange: TKBType['weekRange'] = [];
-
-        // Parse time and location
-        // Format: "Thứ 6: 1-2,F207" or "Thứ 3: 2-3,C128;4: 7-8,C128;6: 9-10,C128"
-        const timeSlots = timeLocationStr.split(';');
-        
-        for (const slot of timeSlots) {
-            // Match pattern: "Thứ X: Y-Z,Location" or "X: Y-Z,Location"
-            const fullDayMatch = slot.match(/(Thứ \d|Chủ nhật):\s*(\d+)-(\d+),([^;]+)/);
-            const shortDayMatch = slot.match(/(\d):\s*(\d+)-(\d+),([^;]+)/);
-            
-            if (fullDayMatch) {
-                const dayName = fullDayMatch[1];
-                const dayNumber = dayMap[dayName] || 8;
-                const lsStart = parseInt(fullDayMatch[2], 10);
-                const lsEnd = parseInt(fullDayMatch[3], 10);
-                const location = fullDayMatch[4].trim();
-
-                time.push({
-                    date: dayNumber,
-                    class: location,
-                    lsStart,
-                    lsEnd
-                });
-            } else if (shortDayMatch) {
-                // This is a continuation from previous day pattern (e.g., "4: 7-8,C128")
-                // Use the day number directly
-                const dayNumber = parseInt(shortDayMatch[1], 10);
-                const lsStart = parseInt(shortDayMatch[2], 10);
-                const lsEnd = parseInt(shortDayMatch[3], 10);
-                const location = shortDayMatch[4].trim();
-
-                time.push({
-                    date: dayNumber,
-                    class: location,
-                    lsStart,
-                    lsEnd
-                });
-            }
-        }
-
-        // Parse week ranges
-        // Format: "22-27;31-40"
-        const weekRanges = weeksStr.split(';');
-        for (const range of weekRanges) {
-            const weekMatch = range.match(/(\d+)-(\d+)/);
-            if (weekMatch) {
-                weekRange.push({
-                    from: parseInt(weekMatch[1], 10),
-                    to: parseInt(weekMatch[2], 10)
-                });
-            }
-        }
-
-        // Only add course if we have valid time and week data
-        if (time.length > 0 && weekRange.length > 0) {
-            courses.push({
-                id: courseId,
-                name: courseName,
-                instructor,
-                time,
-                weekRange
-            });
+        if (ORDINAL_PATTERN.test(ordinal) && COURSE_ID_PATTERN.test(courseId)) {
+            recordStarts.push(index);
         }
     }
 
-    return courses;
+    return recordStarts.map((start, index) => {
+        const end = recordStarts[index + 1] ?? tokens.length;
+        return tokens.slice(start, end);
+    });
+}
+
+function parseTimeSlots(value: string): TKBType['time'] {
+    const time: TKBType['time'] = [];
+
+    for (const slot of value.split(/\s*;\s*/)) {
+        // Accept both registration-web syntax (`Thứ 2: 1-2,A101`) and
+        // student-web syntax (`Thứ 2,1-2,A101`). A bare day number is used
+        // by some older registration pages for subsequent time slots.
+        const match = slot.match(/^(?:(?:Thứ\s*)?([2-7])|(Chủ\s*nhật))\s*[:,]\s*(\d+)\s*-\s*(\d+)\s*,\s*(.+)$/iu);
+        if (!match) continue;
+
+        const date = match[1] ? Number.parseInt(match[1], 10) : 8;
+        const lsStart = Number.parseInt(match[3], 10);
+        const lsEnd = Number.parseInt(match[4], 10);
+        const location = match[5].trim();
+
+        if (!location || lsStart > lsEnd) continue;
+
+        time.push({
+            date,
+            class: location,
+            lsStart,
+            lsEnd
+        });
+    }
+
+    return time;
+}
+
+function parseWeekRanges(value: string): TKBType['weekRange'] {
+    const weekRange: TKBType['weekRange'] = [];
+
+    for (const range of value.split(/\s*;\s*/)) {
+        const match = range.match(/^(\d+)\s*(?:-\s*(\d+))?$/);
+        if (!match) continue;
+
+        const from = Number.parseInt(match[1], 10);
+        const to = Number.parseInt(match[2] ?? match[1], 10);
+
+        if (from > to) continue;
+        weekRange.push({ from, to });
+    }
+
+    return weekRange;
+}
+
+function parseRecord(fields: string[]): TKBType | null {
+    const courseId = normalizeCourseId(fields[1] ?? '');
+    const timeIndex = fields.findIndex((field, index) => index >= 3 && TIME_FIELD_PATTERN.test(field));
+
+    if (!COURSE_ID_PATTERN.test(courseId) || timeIndex < 0) return null;
+
+    const weeksIndex = fields.findIndex((field, index) => index > timeIndex && WEEK_FIELD_PATTERN.test(field));
+    if (weeksIndex < 0) return null;
+
+    const creditIndex = fields.findIndex((field, index) => (
+        index > 2
+        && index < timeIndex
+        && CREDIT_PATTERN.test(field)
+    ));
+    const instructorStart = creditIndex >= 0 ? creditIndex + 1 : timeIndex - 1;
+    const courseNameEnd = creditIndex >= 0 ? creditIndex : instructorStart;
+    const courseName = fields.slice(2, courseNameEnd).join(' ').trim();
+    const instructor = fields.slice(instructorStart, timeIndex).join(' ').trim();
+    const timeLocation = fields.slice(timeIndex, weeksIndex).join('; ');
+    const time = parseTimeSlots(timeLocation);
+    const weekRange = parseWeekRanges(fields[weeksIndex]);
+
+    if (!courseName || !instructor || time.length === 0 || weekRange.length === 0) return null;
+
+    return {
+        id: courseId,
+        name: courseName,
+        instructor,
+        time,
+        weekRange
+    };
+}
+
+/**
+ * Parser for the tab-separated DUT registration format.
+ *
+ * Older pages put a course on one line. The current page copies the ordinal and
+ * ID, course name, and remaining columns onto separate lines. Tokenizing the
+ * complete input and detecting `ordinal + course ID` boundaries supports both
+ * layouts without depending on unstable metadata columns after the week range.
+ */
+export function parseDUTPreviewMode(input: string): TKBType[] {
+    return splitRecords(input)
+        .map(parseRecord)
+        .filter((course): course is TKBType => course !== null);
 }
 
 export default parseDUTPreviewMode;

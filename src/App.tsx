@@ -1,34 +1,14 @@
-/*
- * MIT License
- *
- * Copyright (c) 2025 michioxd
- *
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
- */
+
 
 import { Box, Button, Card, Container, ContextMenu, Flex, Text, TextArea } from "@radix-ui/themes";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Footer from "./components/Footer";
 import UniversitySwitcher from "./components/UniversitySwitcher";
 import UniversityFeatures from "./components/UniversityFeatures";
 import AddCustomCourse from "./components/AddCustomCourse";
+import DownloadCalendar from "./components/DownloadCalendar";
 import createUniversityParser, { TKBType } from "./core/universityParser";
+import { parseDUTInput } from "./core/dutParser";
 import parseUFLFormat from "./core/uflParser";
 import getUniversityTimeRange from "./core/universityTimeRange";
 import html2canvas from "html2canvas-pro";
@@ -43,6 +23,7 @@ export default function App() {
     const [byWeek, setByWeek] = useState(localStorage.getItem('byWeek') === 'true' || false);
     const [showOnlyAvailable, setShowOnlyAvailable] = useState(localStorage.getItem('showOnlyAvailable') === 'true' || false);
     const [onlyToday, setOnlyToday] = useState(localStorage.getItem('onlyToday') === 'true' || false);
+    const [autoFitSchedule, setAutoFitSchedule] = useState(localStorage.getItem('autoFitSchedule') !== 'false');
     const [mergeTimeRanges, setMergeTimeRanges] = useState(localStorage.getItem('mergeTimeRanges') !== 'false'); // Default to true
     const [week, setWeek] = useState(localStorage.getItem('week') ? Number(localStorage.getItem('week')) : 0);
     const [byDateRange, setByDateRange] = useState(localStorage.getItem('byDateRange') === 'true' || false);
@@ -58,6 +39,12 @@ export default function App() {
         return saved ? JSON.parse(saved) : {};
     });
     const [editingCourse, setEditingCourse] = useState<TKBType | null>(null);
+    const [initialCourse, setInitialCourse] = useState<TKBType | null>(null);
+    const [editingTimeIndex, setEditingTimeIndex] = useState(0);
+    const [courseOverrides, setCourseOverrides] = useState<Record<string, Record<string, TKBType>>>(() => {
+        const saved = localStorage.getItem('courseOverrides');
+        return saved ? JSON.parse(saved) : {};
+    });
     const tableRef = useRef<HTMLTableElement>(null);
 
     // Save university selection
@@ -69,6 +56,10 @@ export default function App() {
     useEffect(() => {
         localStorage.setItem('customFeatures', JSON.stringify(customFeatures));
     }, [customFeatures]);
+
+    useEffect(() => {
+        localStorage.setItem('courseOverrides', JSON.stringify(courseOverrides));
+    }, [courseOverrides]);
 
     // Save custom courses per university
     useEffect(() => {
@@ -83,13 +74,22 @@ export default function App() {
 
     const handleAddCustomCourse = (course: TKBType) => {
         if (editingCourse) {
-            // Update existing course
-            setCustomCourses(prev => prev.map(c => c.id === editingCourse.id ? course : c));
-            setEditingCourse(null);
+            if (editingCourse.id.startsWith('custom-')) {
+                setCustomCourses(prev => prev.map(c => c.id === editingCourse.id ? course : c));
+            } else {
+                setCourseOverrides(prev => ({
+                    ...prev,
+                    [selectedUniversity.id]: {
+                        ...(prev[selectedUniversity.id] ?? {}),
+                        [editingCourse.id]: course
+                    }
+                }));
+            }
         } else {
-            // Add new course
             setCustomCourses(prev => [...prev, course]);
         }
+        setEditingCourse(null);
+        setInitialCourse(null);
     };
 
     const handleDeleteCourse = (courseId: string) => {
@@ -98,8 +98,44 @@ export default function App() {
         }
     };
 
-    const handleEditCourse = (course: TKBType) => {
+    const handleEditCourse = (course: TKBType, timeIndex = 0) => {
+        setInitialCourse(null);
+        setEditingTimeIndex(timeIndex);
         setEditingCourse(course);
+    };
+
+    const handleAddCourseAtSlot = useCallback((day: number, lessonNumber: number) => {
+        const selectedWeek = week > 0 ? week : 1;
+        const selectedDate = dateRangeStart || new Date().toISOString().slice(0, 10);
+        const [year, month, date] = selectedDate.split('-');
+        const formattedDate = `${date}/${month}/${year}`;
+
+        setEditingCourse(null);
+        setEditingTimeIndex(0);
+        setInitialCourse({
+            id: `custom-${Date.now()}-${day}-${lessonNumber}`,
+            name: '',
+            instructor: '',
+            time: [{
+                date: day,
+                class: '',
+                lsStart: lessonNumber,
+                lsEnd: lessonNumber
+            }],
+            weekRange: selectedUniversity.features.byWeek ? [{
+                from: selectedWeek,
+                to: selectedWeek
+            }] : [],
+            originalDateRanges: selectedUniversity.features.byDateRange
+                ? [`${formattedDate} - ${formattedDate}`]
+                : undefined
+        });
+    }, [dateRangeStart, selectedUniversity, week]);
+
+    const handleCourseDialogClose = () => {
+        setEditingCourse(null);
+        setInitialCourse(null);
+        setEditingTimeIndex(0);
     };
 
     const handleUniversityChange = (university: UniversityConfig) => {
@@ -136,6 +172,10 @@ export default function App() {
     useEffect(() => {
         localStorage.setItem('onlyToday', onlyToday.toString());
     }, [onlyToday]);
+
+    useEffect(() => {
+        localStorage.setItem('autoFitSchedule', autoFitSchedule.toString());
+    }, [autoFitSchedule]);
 
     useEffect(() => {
         localStorage.setItem('mergeTimeRanges', mergeTimeRanges.toString());
@@ -246,19 +286,23 @@ export default function App() {
             // For UFL, parse the entire input at once since each line is a complete course
             const courses = parseUFLFormat(data);
             d.push(...courses);
+        } else if (selectedUniversity.id === 'dut') {
+            d.push(...parseDUTInput(data, selectedUniversity));
         } else {
             // For other universities, parse line by line
             const universityParser = createUniversityParser(selectedUniversity);
 
-            data.replace(/\r\n/g, "\n").split('\n').map((line) => {
-                if (line === '') return null;
+            data.replace(/\r\n/g, "\n").split('\n').forEach((line) => {
+                if (line === '') return;
 
-                const parser = universityParser(line);
-                if (parser) {
-                    d.push(parser);
-                }
+                const course = universityParser(line);
+                if (course) d.push(course);
             });
         }
+
+        const selectedOverrides = courseOverrides[selectedUniversity.id] ?? {};
+        const parsedCourses = d.map(course => selectedOverrides[course.id] ?? course);
+        d.splice(0, d.length, ...parsedCourses);
 
         // Add custom courses
         d.push(...customCourses);
@@ -269,7 +313,7 @@ export default function App() {
         }
 
         return d;
-    }, [data, selectedUniversity, mergeTimeRanges, customCourses]);
+    }, [data, selectedUniversity, mergeTimeRanges, customCourses, courseOverrides]);
 
     const dt = useMemo(() => {
         const universityTimeRange = getUniversityTimeRange(selectedUniversity);
@@ -311,6 +355,9 @@ export default function App() {
                 )
             )
             : universityTimeRange;
+        const today = new Date().getDay();
+        const visibleDays = Array.from({ length: 7 }, (_, index) => index + 2)
+            .filter(day => !onlyToday || day === today + 1 || (day === 8 && today === 0));
 
         return (
             <>
@@ -321,25 +368,66 @@ export default function App() {
                             <br />
                             <Text>{time.start} - {time.end}</Text>
                         </td>
-                        {Array.from({ length: 7 }, (_, i) => i + 2).map(day => (onlyToday && (day === (new Date()).getDay() + 1 || (day === 8 && (new Date()).getDay() === 0)) || !onlyToday) && (
-                            <td key={day}>
-                                {(() => {
-                                    const coursesInSlot = scheduleData.filter(d =>
-                                        d.time.some(t => t.date === day && t.lsStart <= time.lessonNumber && t.lsEnd >= time.lessonNumber && (!byWeek || d.weekRange.some(wr => wr.from <= week && wr.to >= week))) &&
-                                        isInDateRange(d)
-                                    );
-                                    const hasConflict = coursesInSlot.length > 1;
+                        {visibleDays.map(day => {
+                            const coursesInSlot = scheduleData.filter(course =>
+                                course.time.some(slot => (
+                                    slot.date === day
+                                    && slot.lsStart <= time.lessonNumber
+                                    && slot.lsEnd >= time.lessonNumber
+                                    && (!byWeek || course.weekRange.some(range => range.from <= week && range.to >= week))
+                                ))
+                                && isInDateRange(course)
+                            );
+                            const hasConflict = coursesInSlot.length > 1;
+                            const isEmpty = coursesInSlot.length === 0;
 
-                                    return coursesInSlot.map((d, ind) => {
-                                        const isCustomCourse = d.id.startsWith('custom-');
-
+                            return (
+                                <td
+                                    key={day}
+                                    className={isEmpty ? tbCls.emptyCell : undefined}
+                                    role={isEmpty ? 'button' : undefined}
+                                    tabIndex={isEmpty ? 0 : undefined}
+                                    title={isEmpty ? 'Nhấn để thêm lịch tại ô này' : undefined}
+                                    onClick={() => {
+                                        if (isEmpty) handleAddCourseAtSlot(day, time.lessonNumber);
+                                    }}
+                                    onKeyDown={(event) => {
+                                        if (isEmpty && (event.key === 'Enter' || event.key === ' ')) {
+                                            event.preventDefault();
+                                            handleAddCourseAtSlot(day, time.lessonNumber);
+                                        }
+                                    }}
+                                >
+                                    {coursesInSlot.map((course, index) => {
+                                        const isCustomCourse = course.id.startsWith('custom-');
+                                        const courseTimeIndex = course.time.findIndex(slot => (
+                                            slot.date === day
+                                            && slot.lsStart <= time.lessonNumber
+                                            && slot.lsEnd >= time.lessonNumber
+                                        ));
+                                        const openEditor = () => handleEditCourse(course, Math.max(courseTimeIndex, 0));
                                         const courseCard = (
                                             <Box
                                                 className={tbCls.card}
-                                                key={d.id + day + ind}
+                                                key={course.id + day + index}
+                                                role="button"
+                                                tabIndex={0}
+                                                title="Nhấn để chỉnh sửa lịch học"
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    openEditor();
+                                                }}
+                                                onKeyDown={(event) => {
+                                                    if (event.key === 'Enter' || event.key === ' ') {
+                                                        event.preventDefault();
+                                                        event.stopPropagation();
+                                                        openEditor();
+                                                    }
+                                                }}
                                                 style={{
-                                                    marginBottom: hasConflict && ind < coursesInSlot.length - 1 ? '4px' : undefined,
-                                                    position: 'relative'
+                                                    marginBottom: hasConflict && index < coursesInSlot.length - 1 ? '4px' : undefined,
+                                                    position: 'relative',
+                                                    cursor: 'pointer'
                                                 }}
                                             >
                                                 {hasConflict && (
@@ -357,28 +445,33 @@ export default function App() {
                                                     </Box>
                                                 )}
                                                 <Box style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-                                                    <Text weight="bold">{d.name}</Text>
-                                                    {d.displayTimeInfo && (
-                                                        <Text size="1" style={{ fontSize: '12px', color: 'gray' }} color="gray">{d.displayTimeInfo}</Text>
+                                                    <Text weight="bold">{course.name}</Text>
+                                                    {course.displayTimeInfo && (
+                                                        <Text size="1" style={{ fontSize: '12px', color: 'gray' }} color="gray">{course.displayTimeInfo}</Text>
                                                     )}
-                                                    <Text size="1" style={{ fontSize: '10px', color: 'grey' }} color="gray">{d.instructor}</Text>
-                                                    <Text weight="bold" size="1" style={{ fontSize: '14px' }} color="gray">{d.time.filter(t => t.date === day && t.lsStart <= time.lessonNumber && t.lsEnd >= time.lessonNumber).map(t => t.class).join(', ')}</Text>
+                                                    <Text size="1" style={{ fontSize: '10px', color: 'grey' }} color="gray">{course.instructor}</Text>
+                                                    <Text weight="bold" size="1" style={{ fontSize: '14px' }} color="gray">
+                                                        {course.time
+                                                            .filter(slot => slot.date === day && slot.lsStart <= time.lessonNumber && slot.lsEnd >= time.lessonNumber)
+                                                            .map(slot => slot.class)
+                                                            .join(', ')}
+                                                    </Text>
                                                 </Box>
                                             </Box>
                                         );
 
                                         if (isCustomCourse) {
                                             return (
-                                                <ContextMenu.Root key={d.id + day + ind}>
+                                                <ContextMenu.Root key={course.id + day + index}>
                                                     <ContextMenu.Trigger>
                                                         {courseCard}
                                                     </ContextMenu.Trigger>
                                                     <ContextMenu.Content>
-                                                        <ContextMenu.Item onClick={() => handleEditCourse(d)}>
+                                                        <ContextMenu.Item onClick={openEditor}>
                                                             ✏️ Chỉnh sửa
                                                         </ContextMenu.Item>
                                                         <ContextMenu.Separator />
-                                                        <ContextMenu.Item color="red" onClick={() => handleDeleteCourse(d.id)}>
+                                                        <ContextMenu.Item color="red" onClick={() => handleDeleteCourse(course.id)}>
                                                             🗑️ Xóa
                                                         </ContextMenu.Item>
                                                     </ContextMenu.Content>
@@ -387,15 +480,17 @@ export default function App() {
                                         }
 
                                         return courseCard;
-                                    });
-                                })()}
-                            </td>
-                        ))}
+                                    })}
+                                </td>
+                            );
+                        })}
                     </tr>
                 ))}
             </>
         );
-    }, [week, byWeek, byDateRange, dateRangeStart, dateRangeEnd, scheduleData, showOnlyAvailable, onlyToday, selectedUniversity]); return (
+    }, [week, byWeek, byDateRange, dateRangeStart, dateRangeEnd, scheduleData, showOnlyAvailable, onlyToday, selectedUniversity, handleAddCourseAtSlot]);
+
+    return (
         <>
             <Container>
                 <Card my="3" mx="3" style={{ width: 'calc(100% - 2rem)', padding: '1.5rem' }}>
@@ -435,14 +530,21 @@ export default function App() {
                             setOnlyToday={setOnlyToday}
                             mergeTimeRanges={mergeTimeRanges}
                             setMergeTimeRanges={setMergeTimeRanges}
+                            autoFitSchedule={autoFitSchedule}
+                            setAutoFitSchedule={setAutoFitSchedule}
                             customFeatures={customFeatures}
                             setCustomFeatures={setCustomFeatures}
                         />
+                        <Text size="1" color="gray">
+                            Mẹo: nhấn vào môn học để chỉnh sửa; nhấn vào ô trống để thêm lịch tại đúng ngày và tiết đó.
+                        </Text>
                         <Flex align="center" gap="2" wrap="wrap">
                             <AddCustomCourse
                                 onAdd={handleAddCustomCourse}
                                 editingCourse={editingCourse}
-                                onEditComplete={() => setEditingCourse(null)}
+                                initialCourse={initialCourse}
+                                editingTimeIndex={editingTimeIndex}
+                                onEditComplete={handleCourseDialogClose}
                                 university={selectedUniversity}
                             />
                             <Button
@@ -450,10 +552,16 @@ export default function App() {
                                 variant="soft"
                                 onClick={() => {
                                     setData('');
-                                    setCustomCourses([]);
+                                     setCustomCourses([]);
+                                     setCourseOverrides(prev => ({
+                                         ...prev,
+                                         [selectedUniversity.id]: {}
+                                     }));
+                                     handleCourseDialogClose();
                                     setByWeek(false);
                                     setWeek(0);
-                                    setShowOnlyAvailable(false);
+                                     setShowOnlyAvailable(false);
+                                     setAutoFitSchedule(true);
                                 }}
                             >Reset</Button>
                             <Button
@@ -475,6 +583,10 @@ export default function App() {
                                     });
                                 }}
                             >Lưu lại thành file ảnh</Button>
+                            <DownloadCalendar
+                                courses={scheduleData}
+                                university={selectedUniversity}
+                            />
                             <a href={selectedUniversity.videoUrl} target="_blank" rel="noreferrer">
                                 <Button variant="soft" color="cyan">Xem hướng dẫn</Button>
                             </a>
@@ -494,7 +606,7 @@ export default function App() {
             </Container>
             {scheduleData.length > 0 &&
                 <Box mx="3" style={{ width: 'calc(100% - 2rem)', overflow: 'auto' }}>
-                    <table className={tbCls.table} ref={tableRef}>
+                    <table className={`${tbCls.table} ${autoFitSchedule ? tbCls.fit : ''}`} ref={tableRef}>
                         <thead>
                             <tr>
                                 <th> </th>
